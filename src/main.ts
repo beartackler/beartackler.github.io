@@ -498,7 +498,9 @@ function buildOdometer(): void {
     odoReels.push(reel);
   }
   const label = document.createElement('span');
-  label.textContent = `/ ${plane.wordCount} words`;
+  // Pad the total to match the reel, so the pair reads as one counter.
+  const total = String(plane.wordCount).padStart(ODO_DIGITS, '0');
+  label.textContent = `/ ${total} words`;
   pct.append(box, label);
   setOdometer(0);
 }
