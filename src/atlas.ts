@@ -11,6 +11,9 @@ export type Palette = {
   muted: string;
   glow: string;
   glowHot: string;
+  bark: string;
+  bloom: string;
+  bloomDeep: string;
 };
 
 /** Index into `Atlas.sheets`. Tones 0–3 line up with layout.ts `Tone`. */
@@ -21,6 +24,9 @@ export const Sheet = {
   Muted: 3,
   Glow: 4,
   GlowHot: 5,
+  Bark: 6,
+  Bloom: 7,
+  BloomDeep: 8,
 } as const;
 
 export class Atlas {
@@ -52,6 +58,9 @@ export class Atlas {
       palette.muted,
       palette.glow,
       palette.glowHot,
+      palette.bark,
+      palette.bloom,
+      palette.bloomDeep,
     ];
 
     for (const colour of colours) {

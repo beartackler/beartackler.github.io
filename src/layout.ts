@@ -37,6 +37,8 @@ export type Plane = {
   textCells: number;
   /** Where a keyboard visitor's lantern starts: on the name, not in a gutter. */
   home: { col: number; row: number };
+  /** Where the ikigai mark first appears: just past the end of the wordmark. */
+  markAnchor: { col: number; row: number };
   /**
    * Which word each cell belongs to. Resolution is computed per word rather
    * than per cell, so type snaps into focus whole instead of dissolving at
@@ -73,6 +75,7 @@ class Draft {
   maxRow = 0;
   maxCol = 0;
   home = { col: 0, row: 0 };
+  markAnchor = { col: 0, row: 0 };
 
   text(col: number, row: number, s: string, tone: ToneValue): void {
     if (!s) return;
@@ -153,6 +156,7 @@ class Draft {
     }
 
     const home = { col: this.home.col, row: this.home.row + shift };
+    const markAnchor = { col: this.markAnchor.col, row: this.markAnchor.row + shift };
     // "Words" excludes block type (whose strokes are runs of their own), the
     // halftone rule (one very long run) and single-character separators, so
     // the counter reports something a visitor would actually call a word.
@@ -180,6 +184,7 @@ class Draft {
       textCells,
       links,
       home,
+      markAnchor,
       runId,
       runCount,
       isWord,
@@ -269,6 +274,7 @@ export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
     const xR = x0 + LEFT_W + gutter;
 
     d.home = { col: x0 + 12, row: 4 };
+    d.markAnchor = { col: x0 + blockWidth(PERSON.name) + 11, row: 6 };
     let y = paintName(d, x0, 2, contentW) + 2;
     d.text(x0, y, PERSON.tagline, Tone.Dim);
     y += 2;
@@ -313,6 +319,11 @@ export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
     y = paintMakes(d, x0, y) + 4;
     y = d.block(x0, y, 'REACH', Tone.Display) + 2;
     paintReach(d, x0, y);
+
+    // Nothing fits beside a wrapped wordmark on a phone, but the ragged right
+    // edge of the single column leaves a clear strip for its whole height.
+    // Set once the composition is measured, so it lands in that strip.
+    d.markAnchor = { col: cols - 10, row: Math.round(d.maxRow * 0.42) };
   }
 
   return d.bake(cols, minRows, reserveRows);
