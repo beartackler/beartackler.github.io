@@ -12,6 +12,8 @@ const ALPHA_STEPS = 12;
 const FLOOR = 0.04; // below this a cell is simply dark
 const HAZE_TEXT = 0.78; // haze is stronger over text than over empty field
 const HAZE_EMPTY = 0.52;
+/** Uniform, so a glow that crosses type is no brighter than one that doesn't. */
+const HAZE_FLOOR = 0.62;
 
 /** Sheets are drawn in this order so resolved type sits above the haze. */
 const DRAW_ORDER = [Sheet.Glow, Sheet.Display, Sheet.Ink, Sheet.Dim, Sheet.Muted, Sheet.GlowHot];
@@ -79,7 +81,8 @@ export class Renderer {
     for (let r = firstRow; r <= lastRow; r++) {
       for (let c = 0; c < plane.cols; c++) {
         const i = r * plane.cols + c;
-        const l = Math.max(field.light[i], field.ink[i]);
+        const glow = field.floor[i];
+        const l = Math.max(field.light[i], field.ink[i], glow);
         if (l < FLOOR) continue;
 
         const code = plane.chars[i];
@@ -88,12 +91,22 @@ export class Renderer {
         // Words resolve as words, on their brightest cell.
         const resolve = run >= 0 ? smoothstep(0.28, 0.55, field.runLight[run]) : 0;
 
-        // Halftone haze — the ASCII-art layer.
-        const hazeA = l * (1 - resolve) * (isText ? HAZE_TEXT : HAZE_EMPTY);
+        // Halftone haze — the ASCII-art layer. A cell lit by `floor` uses one
+        // multiplier either way, so a ring crossing the page reads as a single
+        // continuous line rather than tracing where the text is.
+        const byFloor = glow >= field.light[i] && glow >= field.ink[i];
+        const hazeMul = byFloor ? HAZE_FLOOR : isText ? HAZE_TEXT : HAZE_EMPTY;
+        const hazeA = l * (1 - resolve) * hazeMul;
         if (hazeA >= 0.03) {
-          const jitter = 0.75 + field.seed[i] * 0.5;
-          const idx = Math.min(ramp.length - 1, Math.floor(l * jitter * ramp.length));
-          this.push(Sheet.Glow, hazeA, i, ramp[Math.max(0, idx)]);
+          // Jitter gives the lantern's haze its grain, but it would scatter the
+          // mark's glyphs. The mark also sits at the dense end of the ramp:
+          // mid-density punctuation reads as stray text, `#%@` reads as a line.
+          const idx = byFloor
+            ? Math.min(ramp.length - 1, Math.floor((0.58 + 0.42 * l) * ramp.length))
+            : Math.min(ramp.length - 1, Math.floor(l * (0.75 + field.seed[i] * 0.5) * ramp.length));
+          // Where all four rings meet, the mark drives the cell hot.
+          const sheet = glow > 0.7 && glow >= l - 0.001 ? Sheet.GlowHot : Sheet.Glow;
+          this.push(sheet, hazeA, i, ramp[Math.max(0, idx)]);
         }
 
         if (!isText || resolve <= 0.02) continue;

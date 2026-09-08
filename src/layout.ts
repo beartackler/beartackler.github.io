@@ -44,6 +44,9 @@ export type Plane = {
    */
   runId: Int32Array;
   runCount: number;
+  /** Which runs count as words for the counter; see `bake`. */
+  isWord: Uint8Array;
+  wordCount: number;
   links: LinkRegion[];
 };
 
@@ -99,11 +102,14 @@ class Draft {
    * `minRows` pads the plane out to the viewport and centres the composition
    * inside it. Without it the grid ends where the text ends and the lantern
    * has no cells to light near the top and bottom edges of the screen.
+   *
+   * `reserveRows` keeps the bottom of the plane clear for the fixed controls,
+   * which would otherwise sit on top of the last lines of the composition.
    */
-  bake(cols: number, minRows: number): Plane {
+  bake(cols: number, minRows: number, reserveRows: number): Plane {
     const contentRows = this.maxRow + 2;
     const rows = Math.max(contentRows, minRows);
-    const shift = Math.max(0, Math.floor((rows - contentRows) / 2));
+    const shift = Math.max(0, Math.floor((rows - reserveRows - contentRows) / 2));
     const chars = new Uint16Array(cols * rows);
     const tone = new Uint8Array(cols * rows);
     const links: LinkRegion[] = [];
@@ -147,7 +153,38 @@ class Draft {
     }
 
     const home = { col: this.home.col, row: this.home.row + shift };
-    return { cols, rows, chars, tone, textCells, links, home, runId, runCount };
+    // "Words" excludes block type (whose strokes are runs of their own), the
+    // halftone rule (one very long run) and single-character separators, so
+    // the counter reports something a visitor would actually call a word.
+    const runLen = new Int32Array(runCount);
+    const runTone = new Uint8Array(runCount);
+    for (let i = 0; i < runId.length; i++) {
+      const k = runId[i];
+      if (k < 0) continue;
+      runLen[k]++;
+      runTone[k] = tone[i];
+    }
+    const isWord = new Uint8Array(runCount);
+    let wordCount = 0;
+    for (let k = 0; k < runCount; k++) {
+      if (runTone[k] === Tone.Display || runLen[k] < 2 || runLen[k] > 40) continue;
+      isWord[k] = 1;
+      wordCount++;
+    }
+
+    return {
+      cols,
+      rows,
+      chars,
+      tone,
+      textCells,
+      links,
+      home,
+      runId,
+      runCount,
+      isWord,
+      wordCount,
+    };
   }
 }
 
@@ -221,7 +258,7 @@ const LEFT_W = 52;
 const RIGHT_W = 46;
 const NARROW_W = 54; // exactly wide enough for MONASYPOV as block type
 
-export function compose(cols: number, minRows = 0): Plane {
+export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
   const d = new Draft();
   const twoUp = cols >= LEFT_W + RIGHT_W + 8 + 8;
 
@@ -278,5 +315,5 @@ export function compose(cols: number, minRows = 0): Plane {
     paintReach(d, x0, y);
   }
 
-  return d.bake(cols, minRows);
+  return d.bake(cols, minRows, reserveRows);
 }

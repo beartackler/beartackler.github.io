@@ -17,6 +17,12 @@ export class Field {
   light: Float32Array;
   ink: Float32Array;
   seed: Float32Array;
+  /**
+   * An extra intensity floor, written per frame by whatever else wants to glow
+   * through the grid. The ikigai mark uses it, which keeps that feature out of
+   * the lantern's physics entirely.
+   */
+  floor: Float32Array;
   /** Brightest cell in each word, including burned-in ink. */
   runLight: Float32Array;
   /** Brightest *live* cell in each word; burned-in words read dimmer. */
@@ -35,6 +41,7 @@ export class Field {
     this.ink = new Float32Array(n);
     this.seed = new Float32Array(n);
     for (let i = 0; i < n; i++) this.seed[i] = Math.random();
+    this.floor = new Float32Array(n);
     this.runLight = new Float32Array(runCount);
     this.runLive = new Float32Array(runCount);
     this.runLock = new Float32Array(runCount);
@@ -122,8 +129,6 @@ export class Field {
     thickness: number,
     aspect: number,
     strength: number,
-    /** When given, only empty cells are lit — the ring can never spoil a word. */
-    emptyOnly?: Uint16Array,
   ): void {
     const reach = radius + thickness;
     const c0 = Math.max(0, Math.floor(colF - reach));
@@ -138,9 +143,8 @@ export class Field {
         const t = 1 - Math.abs(Math.sqrt(dx * dx + dy * dy) - radius) / thickness;
         if (t <= 0) continue;
         const i = r * this.cols + c;
-        if (emptyOnly && emptyOnly[i] !== 0) continue;
         const v = t * t * (3 - 2 * t) * strength;
-        if (v > this.light[i]) this.light[i] = v;
+        if (v > this.floor[i]) this.floor[i] = v;
       }
     }
   }

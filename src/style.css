@@ -272,7 +272,6 @@ body:not(.ready) .chrome {
 /* Bracket the key, not the word: "[ space ] reveal" parses at a glance. */
 @media (pointer: fine) {
   .chrome button#reveal-toggle::before { content: '[ space ] '; }
-  .chrome button#plain-toggle::before { content: '[ p ] '; }
   .chrome button::after { content: ''; }
 }
 
@@ -286,38 +285,6 @@ body:not(.ready) .chrome {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-body.plain {
-  cursor: auto;
-  overflow-y: auto;
-}
-
-body.plain #field,
-body.plain #hotspots,
-body.plain #spacer,
-body.plain #boot,
-body.plain #hint,
-/* Neither of these means anything once the grid is gone. */
-body.plain #pct,
-body.plain #reveal-toggle {
-  display: none;
-}
-
-body.plain #doc {
-  position: static;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  clip-path: none;
-  white-space: normal;
-  max-width: 68ch;
-  margin: 0 auto;
-  padding: clamp(3rem, 9vw, 7rem) 1.5rem 9rem;
-  font-family: var(--doc);
-  font-size: clamp(1rem, 0.95rem + 0.2vw, 1.075rem);
-  line-height: 1.62;
-  text-wrap: pretty;
 }
 
 #doc:focus-visible {

@@ -2,6 +2,7 @@ import './style.css';
 import { Atlas, type Palette } from './atlas';
 import { Field } from './field';
 import { compose, type Plane } from './layout';
+import { buildMark, popcount4, type Mark } from './mark';
 import { Renderer } from './render';
 
 const IDLE_HINT = 3000;
@@ -11,6 +12,12 @@ const MAX_RADIUS = 17;
 /** Cells per second the idle reader travels along a line of type. */
 const READ_SPEED = 30;
 const PULSE_PERIOD = 2.9;
+/** Fraction of the page you must uncover by hand before the mark appears. */
+const MARK_AT = 0.9;
+const MARK_DRAW_SECONDS = 4.2;
+/** A ring this close to complete snaps shut, so nobody hunts stragglers. */
+const RING_DONE = 0.9;
+const MARK_KEY = 'ikigai';
 
 const canvas = document.getElementById('field') as HTMLCanvasElement;
 const spacer = document.getElementById('spacer') as HTMLElement;
@@ -56,16 +63,49 @@ let chromeBox: DOMRect | null = null;
 let surfacedAt = 0;
 const startedAt = performance.now();
 
-/** Cell pitch is derived from a target column count, not the other way round. */
-function metrics(w: number) {
-  const targetCols = w >= 1280 ? 152 : w >= 1024 ? 128 : w >= 700 ? 92 : 60;
-  // Capped so the poster still fits vertically on a large display instead of
-  // growing until it scrolls.
-  const cw = Math.min(11, Math.max(5, Math.floor(w / targetCols)));
-  const ch = Math.round(cw * 1.4);
+// ── The mark ───────────────────────────────────────────────────────────────
+// Earned, not asked for: pressing reveal gets you the resume, which is what
+// reveal is for, but it does not get you this.
+let mark: Mark | null = null;
+let markOn = false;
+let markPhase = 0;
+let painted = new Uint8Array(0);
+let ringPainted = [0, 0, 0, 0];
+let ringDone = [false, false, false, false];
+let markComplete = false;
+let askedToReveal = false;
+
+function cellMetrics(cw: number) {
   // Block type is 5 cells tall, so the cell aspect *is* the wordmark's
   // proportion; 1.4 puts it at a normal uppercase width-to-height.
+  const ch = Math.round(cw * 1.4);
   return { cw, ch, fontPx: Math.round(ch * 0.95) };
+}
+
+/**
+ * Picks a cell size that fits the whole composition on screen.
+ *
+ * It is a poster, so it should not scroll: width sets the first guess, then
+ * the cell shrinks until the composition also fits the height. Only a viewport
+ * too small even at a 4px cell falls back to scrolling.
+ */
+function fitMetrics(w: number, h: number) {
+  // The fixed controls are not part of the plane, so their height comes off
+  // the budget before anything is measured against it.
+  h -= chrome.offsetHeight + 6;
+  const targetCols = w >= 1280 ? 152 : w >= 1024 ? 128 : w >= 700 ? 92 : 60;
+  let cw = Math.min(11, Math.max(4, Math.floor(w / targetCols)));
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const m = cellMetrics(cw);
+    const cols = Math.max(20, Math.floor(w / m.cw));
+    const need = compose(cols).rows * m.ch;
+    if (need <= h) return { ...m, cols, fits: true };
+    if (cw <= 4) return { ...m, cols, fits: false };
+    cw = Math.max(4, Math.min(cw - 1, Math.floor(cw * (h / need))));
+  }
+  const m = cellMetrics(4);
+  return { ...m, cols: Math.max(20, Math.floor(w / 4)), fits: false };
 }
 
 function charsetFor(p: Plane): number[] {
@@ -80,14 +120,15 @@ function charsetFor(p: Plane): number[] {
 function build(): void {
   const w = innerWidth;
   const h = innerHeight;
-  const m = metrics(w);
+  const m = fitMetrics(w, h);
   cellW = m.cw;
   cellH = m.ch;
 
-  const cols = Math.max(20, Math.floor(w / cellW));
   const previous = field;
-  // Pad the plane to the viewport so haze reaches every edge of the screen.
-  plane = compose(cols, Math.ceil(h / cellH));
+  // Pad the plane to the viewport so haze reaches every edge of the screen,
+  // but keep the composition clear of the controls.
+  const reserveRows = Math.ceil((chrome.offsetHeight + 6) / cellH);
+  plane = compose(m.cols, Math.ceil(h / cellH), reserveRows);
 
   const dpr = Math.min(2, devicePixelRatio || 1);
   canvas.width = Math.round(w * dpr);
@@ -97,8 +138,10 @@ function build(): void {
 
   atlas = new Atlas(cellW, cellH, dpr, m.fontPx, charsetFor(plane), palette);
 
-  originX = Math.round((w - cols * cellW) / 2);
-  spacer.style.height = `${Math.max(plane.rows * cellH, h)}px`;
+  originX = Math.round((w - m.cols * cellW) / 2);
+  // Only a viewport that cannot fit the poster at all gets a scrollbar.
+  document.body.style.overflowY = m.fits ? 'hidden' : 'auto';
+  spacer.style.height = m.fits ? '0' : `${plane.rows * cellH}px`;
 
   field = new Field(plane.cols, plane.rows, plane.runCount);
   if (previous && previous.cols === plane.cols && previous.rows === plane.rows) {
@@ -110,7 +153,19 @@ function build(): void {
   else renderer.setPlane(plane, field, atlas);
   renderer.hot = null;
 
-  if (reduced.matches) field.revealAll(hasChar);
+  runInk = new Float32Array(plane.runCount);
+  buildOdometer();
+  mark = buildMark(plane, cellH / cellW);
+  painted = new Uint8Array(plane.cols * plane.rows);
+  ringPainted = [0, 0, 0, 0];
+  ringDone = [false, false, false, false];
+  if (markOn) markPhase = 1;
+
+  if (reduced.matches) {
+    field.revealAll(hasChar);
+    // A static poster: show the mark finished rather than withholding it.
+    unlockMark(true);
+  }
   buildHotspots();
   buildReadPath();
   syncOrigin();
@@ -243,21 +298,25 @@ function frame(now: number): void {
   const booting = !touched && !reading;
   const aspect = cellH / cellW;
 
+  // `floor` is written fresh each frame by whichever system is active — the
+  // boot ring before first input, the ikigai mark after it is earned.
+  field.floor.fill(0);
+
   if (booting) {
     // The resting cursor breathes rings of haze into the field: the mechanic,
     // demonstrated, without giving away a single word.
     const t = ((now / 1000) % PULSE_PERIOD) / PULSE_PERIOD;
     const eased = 1 - Math.pow(1 - t, 2.4);
-    // Text cells are excluded, so the ring is free to be bright: the resume
-    // reads as negative space inside the haze without a word being legible.
+    // `floor` lights the material but never develops type, so the ring can
+    // cross the whole screen as one unbroken line and still give nothing away.
+    const reach = (Math.min(innerWidth, innerHeight) / cellW) * 0.3;
     field.ring(
       (innerWidth / 2 - originX) / cellW,
       (innerHeight / 2 - originY) / cellH,
-      0.5 + eased * 24,
-      3.0,
+      0.5 + eased * reach,
+      4.2,
       aspect,
-      0.72,
-      plane.chars,
+      0.85,
     );
     typeHint(idle);
   }
@@ -291,10 +350,9 @@ function frame(now: number): void {
   // than letting its wake fill in as a disc.
   if (!reduced.matches) field.step(dt, hasChar, !booting, booting ? 0.3 : undefined);
   lightHoveredLink();
-  if (!document.body.classList.contains('plain')) {
-    field.resolveRuns(plane.runId, dt);
-    renderer.draw(originX, originY, bg);
-  }
+  stepMark(dt);
+  field.resolveRuns(plane.runId, dt);
+  renderer.draw(originX, originY, bg);
 
   if (now - pctAt > 250) {
     pctAt = now;
@@ -303,6 +361,69 @@ function frame(now: number): void {
   litChrome(now, dt);
 
   requestAnimationFrame(frame);
+}
+
+function unlockMark(finished = false): void {
+  if (!markOn) {
+    markOn = true;
+    try {
+      localStorage.setItem(MARK_KEY, '1');
+    } catch {
+      // Private browsing; the mark is simply earned again next time.
+    }
+  }
+  if (!finished) return;
+  markPhase = 1;
+  markComplete = true;
+  ringDone = [true, true, true, true];
+  if (mark) {
+    for (let i = 0; i < mark.bits.length; i++) if (mark.bits[i]) painted[i] = 1;
+    ringPainted = mark.totals.slice();
+  }
+}
+
+/**
+ * Draws the rings in, then lets the lantern paint them.
+ *
+ * Intensity goes into `field.floor` rather than `field.light`, so the mark
+ * glows through the grid without feeding the decay, the burn-in or the
+ * counter.
+ */
+function stepMark(dt: number): void {
+  if (!mark || mark.cells === 0) return;
+  const { bits, appearAt } = mark;
+  const floor = field.floor;
+
+  if (!markOn) return;
+  if (markPhase < 1) markPhase = Math.min(1, markPhase + dt / MARK_DRAW_SECONDS);
+
+  for (let i = 0; i < bits.length; i++) {
+    const mask = bits[i];
+    if (mask === 0 || appearAt[i] > markPhase) continue;
+
+    // Sweeping the lantern along a ring burns that stretch of it in.
+    if (painted[i] === 0 && field.light[i] > 0.5) {
+      painted[i] = 1;
+      for (let k = 0; k < 4; k++) if (mask & (1 << k)) ringPainted[k]++;
+    }
+
+    const overlap = popcount4(mask);
+    let v = (painted[i] ? 0.72 : 0.46) * (1 + 0.3 * (overlap - 1));
+    if (overlap >= 3) v = markComplete ? 0.82 : 0.74;
+    floor[i] = Math.min(0.86, v);
+  }
+
+  for (let k = 0; k < 4; k++) {
+    if (ringDone[k] || ringPainted[k] < mark.totals[k] * RING_DONE) continue;
+    ringDone[k] = true;
+    const bit = 1 << k;
+    for (let i = 0; i < bits.length; i++) {
+      if ((bits[i] & bit) === 0 || painted[i]) continue;
+      painted[i] = 1;
+      for (let j = 0; j < 4; j++) if (bits[i] & (1 << j)) ringPainted[j]++;
+    }
+  }
+  if (!markComplete && ringDone.every(Boolean)) markComplete = true;
 }
 
 /**
@@ -317,7 +438,7 @@ function litChrome(now: number, dt: number): void {
   let want = Math.max(0, 1 - Math.hypot(dx, dy) / 320);
   want = want * want * (3 - 2 * want);
 
-  const lost = touched && now - startedAt > 15000 && uncovered < plane.textCells * 0.06;
+  const lost = touched && now - startedAt > 15000 && uncovered < plane.wordCount * 0.06;
   if (lost && surfacedAt === 0) surfacedAt = now;
   if (surfacedAt && now - surfacedAt < 2600) want = Math.max(want, 1);
 
@@ -352,9 +473,10 @@ function typeHint(idle: number): void {
 // A 90s hit counter, except it counts your excavation rather than visitors,
 // so it needs no backend and tracks nobody.
 
-const ODO_DIGITS = 7;
+const ODO_DIGITS = 3;
 let odoReels: HTMLElement[] = [];
 let uncovered = 0;
+let runInk = new Float32Array(0);
 
 function buildOdometer(): void {
   pct.textContent = '';
@@ -376,7 +498,7 @@ function buildOdometer(): void {
     odoReels.push(reel);
   }
   const label = document.createElement('span');
-  label.textContent = 'cells';
+  label.textContent = `/ ${plane.wordCount} words`;
   pct.append(box, label);
   setOdometer(0);
 }
@@ -389,12 +511,24 @@ function setOdometer(value: number): void {
 }
 
 function updatePct(): void {
-  let seen = 0;
+  // Words, not cells: a cell is a rendering detail, a word is something the
+  // visitor can actually feel progress against.
+  runInk.fill(0);
   for (let i = 0; i < field.ink.length; i++) {
-    if (plane.chars[i] !== 0 && field.ink[i] > 0.35) seen++;
+    const k = plane.runId[i];
+    if (k < 0 || field.ink[i] <= runInk[k]) continue;
+    runInk[k] = field.ink[i];
+  }
+  let seen = 0;
+  for (let k = 0; k < plane.runCount; k++) {
+    if (plane.isWord[k] && runInk[k] > 0.35) seen++;
   }
   uncovered = seen;
   setOdometer(seen);
+
+  if (!markOn && !askedToReveal && plane.wordCount && seen >= plane.wordCount * MARK_AT) {
+    unlockMark();
+  }
 }
 
 // ── Input ──────────────────────────────────────────────────────────────────
@@ -422,16 +556,11 @@ addEventListener(
 
 function revealAll(): void {
   noteInput();
+  askedToReveal = true;
   field.revealAll(hasChar);
   updatePct();
 }
 
-function togglePlain(force?: boolean): void {
-  const on = force ?? !document.body.classList.contains('plain');
-  document.body.classList.toggle('plain', on);
-  document.getElementById('plain-toggle')!.textContent = on ? 'grid' : 'plain';
-  if (on) document.getElementById('doc')!.focus({ preventScroll: true });
-}
 
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -441,14 +570,11 @@ addEventListener('keydown', (e) => {
     revealAll();
     return;
   }
-  if (e.key === 'p' || e.key === 'P') return togglePlain();
   if (e.key === 'r' || e.key === 'R') {
     field.clear();
     updatePct();
     return;
   }
-  if (e.key === 'Escape' && document.body.classList.contains('plain')) return togglePlain(false);
-
   // Arrow keys drive the lantern, so the page works without a pointer.
   const step = e.shiftKey ? 12 : 4;
   const moves: Record<string, [number, number]> = {
@@ -468,14 +594,8 @@ addEventListener('keydown', (e) => {
   };
 });
 
-// Tabbing into the (visually hidden) document would put focus somewhere the
-// visitor cannot see, so reaching it switches the page to the readable view.
-document.getElementById('doc')!.addEventListener('focusin', () => {
-  if (!document.body.classList.contains('plain')) togglePlain(true);
-});
 
 document.getElementById('reveal-toggle')!.addEventListener('click', revealAll);
-document.getElementById('plain-toggle')!.addEventListener('click', () => togglePlain());
 
 let resizeAt = 0;
 addEventListener('resize', () => {
@@ -492,16 +612,24 @@ async function start(): Promise<void> {
   } catch {
     // Fallback monospace still renders a coherent grid.
   }
-  buildOdometer();
+  try {
+    if (localStorage.getItem(MARK_KEY) === '1') markOn = true;
+  } catch {
+    // No storage: the mark is earned fresh each visit.
+  }
   build();
   document.body.classList.add('ready');
   if (coarse.matches) hintText = 'drag to reveal';
   hint.textContent = '';
 
-  // Deep links, so a link can skip straight to the readable states.
-  const params = new URLSearchParams(location.search);
-  if (params.has('plain')) togglePlain(true);
-  if (params.has('reveal') || reduced.matches) revealAll();
+  // Focus must never land on the visually hidden document; assistive tech
+  // reaches it through its own reading cursor, not the tab order.
+  document.querySelectorAll<HTMLAnchorElement>('#doc a').forEach((a) => {
+    a.tabIndex = -1;
+  });
+
+  // Deep link, so a link can skip straight to the readable state.
+  if (new URLSearchParams(location.search).has('reveal') || reduced.matches) revealAll();
 
   requestAnimationFrame((t) => {
     last = t;
