@@ -185,6 +185,18 @@ export class Blossom {
     }
   }
 
+  /** How many blossoms there are in total. */
+  get total(): number {
+    return this.flowers.length;
+  }
+
+  /** How many are open at progress `p`. The second act's progress readout. */
+  opened(p: number): number {
+    let n = 0;
+    for (const f of this.flowers) if (p > f.at) n++;
+    return n;
+  }
+
   /** Rasterises the branch grown to `p` into `out`, which must be cleared. */
   render(out: Overlay, p: number): void {
     if (p <= 0) return;

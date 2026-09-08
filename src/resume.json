@@ -11,7 +11,7 @@
     "linkedin": "linkedin.com/in/timurmonasypov",
     "linkedinHref": "https://linkedin.com/in/timurmonasypov",
     "resume": "/timur-monasypov-resume.pdf",
-    "summary": "Product and AI safety. Research assistant at Meronym Labs red-teaming LLMs; previously forward deployed PM at Pegbo. Northeastern University, Boston."
+    "summary": "Product and AI. Research assistant at Meronym Labs red-teaming LLMs; previously forward deployed PM at Pegbo. Northeastern University, Boston."
   },
   "now": [
     {
@@ -19,7 +19,7 @@
       "org": "Meronym Labs, Northeastern",
       "orgFull": "Meronym Labs, Northeastern University",
       "where": "Boston, MA",
-      "when": "Sept 2026 →",
+      "when": "from Sept 2026",
       "whenFull": "Sept. 2026 – Present",
       "detail": [
         "Red-team proprietary LLMs for safety failures in mental-health contexts, from prompt design to harm coding",
@@ -45,7 +45,7 @@
       ]
     },
     {
-      "title": "Customer Success Manager",
+      "title": "Customer Success Manager Intern",
       "titleFull": "Customer Success Manager Intern",
       "org": "Mindbox",
       "orgFull": "Mindbox",
@@ -119,7 +119,6 @@
       "school": "Northeastern University",
       "award": "BS Computer Science & Business",
       "awardFull": "BS, Computer Science & Business Administration",
-      "extra": "Concentration in Fintech",
       "when": "2021–2025",
       "whenFull": "Sept. 2021 – July 2025"
     },
@@ -135,8 +134,9 @@
     [
       "ai",
       [
-        "agents · evals · rag · voice",
-        "model routing · local inference"
+        "agent workflows and interfaces",
+        "evals · voice ai · local inference",
+        "software factory ideas"
       ]
     ],
     [
@@ -162,7 +162,7 @@
   "skillsFull": [
     [
       "AI",
-      "Agent-native development and frameworks, evals, production voice agents, RAG, model routing, local inference"
+      "Agent workflows and interfaces, evals, voice AI, local inference, software factory ideas"
     ],
     [
       "Tools",
@@ -172,5 +172,12 @@
       "Languages",
       "Python, TypeScript, SQL, Russian, and some French"
     ]
-  ]
+  ],
+  "coda": {
+    "lines": [
+      "do not fall in love with the weapon.",
+      "fall in love with the cut."
+    ],
+    "credit": "after musashi"
+  }
 }

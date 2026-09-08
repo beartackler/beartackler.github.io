@@ -199,22 +199,21 @@ body.card #caret {
 /* ── The invitation ────────────────────────────────────────────────────── */
 
 /* Once the page is uncovered there is one more thing to do, and exactly one
-   piece of type says so. It sits above the controls, centred, on the axis the
-   mark is about to travel down. */
+   piece of type says so.
+   
+   It hangs directly below the mark, on the axis the mark is about to travel
+   down, so it reads as that thing's trajectory rather than as a control
+   parked in a corner. And it is made of the same density ramp as the rule
+   under the name — a 1px rule would be the only element on the page not made
+   of characters, which is exactly what makes one look bolted on. */
 #nudge {
   position: fixed;
   z-index: 3;
-  left: 50%;
-  bottom: clamp(3.75rem, 9vh, 5.75rem);
   translate: -50% 0;
   margin: 0;
   display: grid;
   justify-items: center;
-  gap: 0.7rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.34em;
-  /* Tracking pads the right of the last letter; pull the word back onto the axis. */
-  text-indent: 0.34em;
+  gap: 0.6rem;
   color: var(--muted);
   opacity: 0;
   pointer-events: none;
@@ -225,30 +224,79 @@ body.card #caret {
   opacity: 1;
 }
 
-/* A hairline rail with a spark falling down it: the same "light travels
-   through the page" idea as the lantern, shrunk to a signpost. */
-#nudge span {
-  position: relative;
-  width: 1px;
-  height: 2rem;
-  overflow: hidden;
-  background: color-mix(in oklch, var(--muted) 40%, transparent);
+#nudge .word {
+  font-size: 0.72rem;
+  letter-spacing: 0.34em;
+  /* Tracking pads the right of the last letter; pull the word back on axis. */
+  text-indent: 0.34em;
 }
 
-#nudge span::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 0.6rem;
-  background: linear-gradient(to bottom, transparent, var(--glow-hot));
-  animation: fall 2.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+/* Light falling away down the page, thinning as it goes. */
+#nudge .fall {
+  display: grid;
+  justify-items: center;
+  font-size: 0.9rem;
+  line-height: 1.05;
 }
+
+#nudge .fall i {
+  font-style: normal;
+  opacity: 0.34;
+  animation: fall 2.5s ease-out infinite;
+}
+
+#nudge .fall i:nth-child(2) { animation-delay: 0.1s; }
+#nudge .fall i:nth-child(3) { animation-delay: 0.2s; }
+#nudge .fall i:nth-child(4) { animation-delay: 0.3s; }
+#nudge .fall i:nth-child(5) { animation-delay: 0.4s; }
 
 @keyframes fall {
-  0% { translate: 0 -0.6rem; opacity: 0; }
-  18% { opacity: 1; }
-  72%, 100% { translate: 0 2rem; opacity: 0; }
+  0%, 100% { opacity: 0.34; color: var(--muted); }
+  14% { opacity: 1; color: var(--glow-hot); }
+  42% { opacity: 0.34; color: var(--muted); }
+}
+
+/* ── The coda ─────────────────────────────────────────────────────────── */
+
+/* One line, once the mark and the branch have both finished. Ranged right
+   against the rosette at its own height, so the end of the journey reads as a
+   print: branch above, mark centred, the line that explains them both set
+   into the space beside it. */
+#coda {
+  position: fixed;
+  z-index: 3;
+  margin: 0;
+  /* Centred on the mark's own height rather than hanging below it. */
+  translate: 0 -50%;
+  text-align: right;
+  color: var(--ink-dim);
+  font-size: clamp(0.78rem, 0.95vw, 0.95rem);
+  line-height: 1.75;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s var(--ease);
+}
+
+#coda.on {
+  opacity: 1;
+}
+
+#coda blockquote {
+  margin: 0;
+}
+
+/* One clause per line. Letting it reflow breaks it mid-phrase, which reads as
+   a text box rather than as a line someone set. */
+#coda blockquote span {
+  display: block;
+  white-space: nowrap;
+}
+
+#coda figcaption {
+  margin-top: 1.1rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
 }
 
 /* ── Chrome ────────────────────────────────────────────────────────────── */
@@ -332,6 +380,21 @@ body.card #caret {
   .odo-reel {
     transition: none;
   }
+}
+
+/* Act two has no amber in it, so neither does its readout. */
+body.act2 .odo {
+  background: color-mix(in oklch, var(--bloom) 24%, transparent);
+}
+
+body.act2 .odo-digit {
+  color: var(--bloom);
+}
+
+/* `reveal` has nothing left to reveal once the journey has started. */
+body.act2 #reveal-toggle {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* On a narrow chrome the counter drops its unit rather than wrapping the row
@@ -505,13 +568,13 @@ body.card #caret {
 
 @media (prefers-reduced-motion: reduce) {
   #boot span,
-  #nudge span::after,
+  #nudge .fall i,
   #caret {
     animation: none;
   }
-  /* Without the falling spark the rail needs to read as a rail on its own. */
-  #nudge span {
-    background: color-mix(in oklch, var(--glow) 55%, transparent);
+  /* Without the travelling pulse the column has to read on its own. */
+  #nudge .fall i {
+    opacity: 0.55;
   }
   * {
     transition-duration: 0.01ms !important;

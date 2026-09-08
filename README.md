@@ -15,9 +15,16 @@ appears at the bottom of the screen: `scroll`.
 
 That is the second act. Scrolling fades the resume out, carries the mark down
 to the middle of the screen and grows it until it fills the page, and grows a
-plum branch in across the top — black, bone white and plum, nothing else.
+plum branch in across the top — black, bone white and plum, nothing else. The
+counter in the corner stays, and switches from words uncovered to blossoms
+open, so there is always something on screen saying how far this runs and that
+it ends. When both have arrived, one line is set against the mark.
+
 Every part of it is a pure function of scroll position, so scrolling back up
-puts the resume back exactly as it was, mark and all.
+puts the resume back exactly as it was, mark and all. The journey follows the
+scroll with a spring rather than tracking it directly: a wheel notch is a
+jump, and the mark is rasterised to whole cells, so tracking `scrollY` made it
+advance in visible steps.
 
 Nobody is trapped in the game. `space` lights the whole thing, `resume` is the
 PDF, and the full resume is in the DOM at all times for screen readers,
@@ -45,11 +52,12 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   legible, and nothing to respect once the resume has gone. The ring band
   feathers while the mark is in motion, so a cell fades in as an arc sweeps
   over it rather than appearing whole.
-- **`src/blossom.ts`** — the plum branch. Generated once from a fixed seed, with
-  every segment, flower and falling petal carrying the scroll position at which
-  it appears, which is what makes the growth reversible. Amplitudes are
-  fractions of the band it occupies rather than fixed row counts, so it fills
-  the top of a wide desktop and a tall phone alike.
+- **`src/blossom.ts`** — the plum branch, which also reports how many of its
+  blossoms are open, because that is act two's progress readout. Generated once
+  from a fixed seed, with every segment, flower and falling petal carrying the
+  scroll position at which it appears, which is what makes the growth
+  reversible. Amplitudes are fractions of the band it occupies rather than
+  fixed row counts, so it fills the top of any viewport.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.
 - **`src/field.ts`** — the lantern. `light` decays on a half-life, `ink` is what
@@ -77,6 +85,14 @@ mark survive being shrunk in a way that a page of 9px type does not.
 
 Zero runtime dependencies. ~32 kB of JS, 13.6 kB gzipped. 8.3 ms median frame
 with the page fully lit, and the same through the second act.
+
+The scroll cue and the closing line are both positioned off the *plane* rather
+than off the screen edges: the cue hangs on the mark's own column, and the line
+is ranged right against the mark at its final height. Anything positioned off a
+viewport corner reads as chrome; anything positioned off the mark reads as
+belonging to it. The cue is drawn with the same density ramp as the rule under
+the name, for the same reason — a 1px CSS rule would be the only thing on the
+page not made of characters.
 
 ## Colour
 

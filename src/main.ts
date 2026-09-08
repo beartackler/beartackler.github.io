@@ -36,6 +36,7 @@ const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const nudge = document.getElementById('nudge') as HTMLElement;
 const caret = document.getElementById('caret') as HTMLElement;
+const coda = document.getElementById('coda') as HTMLElement;
 const pct = document.getElementById('pct') as HTMLElement;
 const chrome = document.querySelector('.chrome') as HTMLElement;
 
@@ -218,6 +219,7 @@ function build(): void {
     unlockMark(true);
   }
   hotspots.style.pointerEvents = 'auto';
+  placeChrome();
   if (plane.caret) {
     caret.style.left = `${originX + plane.caret.col * cellW}px`;
     caret.style.top = `${plane.caret.row * cellH}px`;
@@ -232,6 +234,37 @@ function build(): void {
 
 function hasChar(i: number): boolean {
   return plane.chars[i] !== 0;
+}
+
+/**
+ * Puts the nudge and the coda where the mark is, not where the viewport is.
+ *
+ * Both belong to the mark: the nudge hangs on the axis it is about to travel
+ * down, and the coda is set against it at its final height. Positioning them
+ * off the plane rather than off the screen edges is what stops them reading as
+ * chrome parked in a corner.
+ */
+function placeChrome(): void {
+  const rest = plane.markRest;
+  const aspect = cellH / cellW;
+
+  // Nudge: on the mark's column, a few rows below where it rests.
+  const below = rest.row + rest.rows / 2 + 2.5;
+  const floorRow = plane.rows - chromeRows - 6;
+  nudge.style.left = `${originX + (rest.col + 0.5) * cellW}px`;
+  nudge.style.top = `${Math.min(below, floorRow) * cellH}px`;
+
+  // Coda: level with the mark's end position and ranged right against its
+  // left edge. Anchoring it to the mark rather than to a left margin is what
+  // guarantees it never runs into the rosette, whatever the line lengths and
+  // whatever size the type ends up at.
+  const top = plane.rows * BLOSSOM_BAND;
+  const bottom = plane.rows - chromeRows;
+  const room = Math.max(8, bottom - top);
+  const extent = Math.min(plane.cols * 0.86, (room - 1) * aspect);
+  const markLeft = originX + (plane.cols / 2 - extent / 2 - 4) * cellW;
+  coda.style.right = `${Math.max(cellW * 2, innerWidth - markLeft)}px`;
+  coda.style.top = `${((top + bottom) / 2) * cellH}px`;
 }
 
 /** One transparent anchor per link run, laid out in plane coordinates. */
@@ -382,6 +415,9 @@ function resetMark(): void {
   markComplete = false;
   scrollP = 0;
   scrollRaw = 0;
+  blossomP = 0;
+  document.body.classList.remove('act2');
+  coda.classList.remove('on');
   painted.fill(0);
   markMask.fill(0);
   field.floor.fill(0);
@@ -484,11 +520,14 @@ function stepMark(dt: number): void {
   }
 }
 
+/** How far the branch has grown; act two's readout counts against it. */
+let blossomP = 0;
+
 function stepBlossom(): void {
   if (!overlay || !blossom) return;
-  const p = smooth((scrollP - 0.26) / 0.69);
+  blossomP = smooth((scrollP - 0.26) / 0.69);
   overlay.alpha.fill(0);
-  if (p > 0) blossom.render(overlay, p);
+  if (blossomP > 0) blossom.render(overlay, blossomP);
 }
 
 // ── The counter ────────────────────────────────────────────────────────────
@@ -497,6 +536,9 @@ function stepBlossom(): void {
 
 const ODO_DIGITS = 3;
 let odoReels: HTMLElement[] = [];
+let odoTotal!: HTMLElement;
+let odoUnit!: HTMLElement;
+let odoShowing = '';
 let uncovered = 0;
 let runInk = new Float32Array(0);
 
@@ -519,23 +561,32 @@ function buildOdometer(): void {
     box.append(digit);
     odoReels.push(reel);
   }
-  // Pad the total to match the reel, so the pair reads as one counter. The
-  // unit is a separate span because a narrow chrome drops it rather than
+  // The unit is a separate span because a narrow chrome drops it rather than
   // wrapping onto a second line.
-  const total = document.createElement('span');
-  total.textContent = `/${String(plane.wordCount).padStart(ODO_DIGITS, '0')}`;
-  const unit = document.createElement('span');
-  unit.className = 'odo-unit';
-  unit.textContent = ' words';
-  pct.append(box, total, unit);
-  setOdometer(0);
+  odoTotal = document.createElement('span');
+  odoUnit = document.createElement('span');
+  odoUnit.className = 'odo-unit';
+  pct.append(box, odoTotal, odoUnit);
+  odoShowing = '';
+  setReadout(0, plane.wordCount, 'words');
 }
 
-function setOdometer(value: number): void {
+/**
+ * The counter, for whichever act is running.
+ *
+ * Act one counts words uncovered; act two counts blossoms open. Same reels,
+ * same shape, and in both cases a denominator — a bare number tells you
+ * nothing about whether there is more, which is the whole job here.
+ */
+function setReadout(value: number, total: number, unit: string): void {
   const text = String(Math.min(value, 10 ** ODO_DIGITS - 1)).padStart(ODO_DIGITS, '0');
   for (let i = 0; i < ODO_DIGITS; i++) {
     odoReels[i].style.transform = `translateY(${-Number(text[i])}em)`;
   }
+  if (odoShowing === unit) return;
+  odoShowing = unit;
+  odoTotal.textContent = `/${String(total).padStart(ODO_DIGITS, '0')}`;
+  odoUnit.textContent = ` ${unit}`;
 }
 
 function updatePct(): void {
@@ -552,7 +603,7 @@ function updatePct(): void {
     if (plane.isWord[k] && runInk[k] > 0.35) seen++;
   }
   uncovered = seen;
-  setOdometer(seen);
+  if (scrollP < 0.02) setReadout(seen, plane.wordCount, 'words');
 
   if (!markOn && plane.wordCount && seen >= plane.wordCount * MARK_AT) {
     unlockMark();
@@ -664,11 +715,22 @@ function applyJourney(): void {
   // screen between the acts reads as a breath instead of a dead zone.
   renderer.fade = 1 - smooth(scrollP / 0.32);
   renderer.tint = smooth((scrollP - 0.04) / 0.24);
-  pct.style.opacity = String(1 - Math.min(1, scrollP / 0.28));
   // Don't leave invisible links clickable once the resume has faded.
   hotspots.style.pointerEvents = scrollP > 0.25 ? 'none' : 'auto';
   // Wait for the rings to finish drawing themselves before asking for more.
-  nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.8 && scrollP < 0.05);
+  nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.6 && scrollP < 0.05);
+
+  // The readout stays through the second act rather than fading out. Without
+  // it there is nothing on screen that says how far the journey runs or that
+  // it ends, which is the one thing scrolling into it does not tell you.
+  const inAct2 = scrollP > 0.02;
+  document.body.classList.toggle('act2', inAct2);
+  if (inAct2 && blossom) {
+    setReadout(blossom.opened(blossomP), blossom.total, 'blossoms');
+  }
+
+  // The closing line, once both the mark and the branch have arrived.
+  coda.classList.toggle('on', blossomP >= 1 && scrollP > 0.93);
 }
 
 /**

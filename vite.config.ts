@@ -56,7 +56,17 @@ function resumeDocument(): Plugin {
           .map(([k, v]: [string, string]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
           .join('')}</dl>
       </section>
+      <footer>
+        <blockquote>${data.coda.lines.map(esc).join(' ')}</blockquote>
+        <p class="meta">${esc(data.coda.credit)}</p>
+      </footer>
     </main>`;
+
+      const coda = `
+    <figure id="coda" aria-hidden="true">
+      <blockquote>${data.coda.lines.map((l: string) => `<span>${esc(l)}</span>`).join('')}</blockquote>
+      <figcaption>${esc(data.coda.credit)}</figcaption>
+    </figure>`;
 
       const head = `
     <meta name="description" content="${esc(p.summary)}" />
@@ -67,7 +77,7 @@ function resumeDocument(): Plugin {
     <meta property="og:image" content="https://beartackler.github.io/og.png" />
     <meta property="og:image:width" content="2400" />
     <meta property="og:image:height" content="1260" />
-    <meta property="og:image:alt" content="An ASCII-art resume rendered on a dark character grid." />
+    <meta property="og:image:alt" content="A plum branch drawn in ASCII across the top of a black page, with four overlapping rings below it." />
     <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json">${JSON.stringify({
       '@context': 'https://schema.org',
@@ -83,7 +93,10 @@ function resumeDocument(): Plugin {
       jobTitle: data.now[0].title,
     })}<\/script>`;
 
-      return html.replace('<!--DOC-->', doc).replace('<!--HEAD-->', head);
+      return html
+        .replace('<!--DOC-->', doc)
+        .replace('<!--CODA-->', coda)
+        .replace('<!--HEAD-->', head);
     },
   };
 }
