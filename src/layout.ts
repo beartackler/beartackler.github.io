@@ -95,24 +95,32 @@ class Draft {
     return row + BLOCK_ROWS;
   }
 
-  bake(cols: number): Plane {
-    const rows = this.maxRow + 2;
+  /**
+   * `minRows` pads the plane out to the viewport and centres the composition
+   * inside it. Without it the grid ends where the text ends and the lantern
+   * has no cells to light near the top and bottom edges of the screen.
+   */
+  bake(cols: number, minRows: number): Plane {
+    const contentRows = this.maxRow + 2;
+    const rows = Math.max(contentRows, minRows);
+    const shift = Math.max(0, Math.floor((rows - contentRows) / 2));
     const chars = new Uint16Array(cols * rows);
     const tone = new Uint8Array(cols * rows);
     const links: LinkRegion[] = [];
 
     for (const op of this.ops) {
       const glyphs = [...op.s];
+      const row = op.row + shift;
       for (let i = 0; i < glyphs.length; i++) {
         const c = op.col + i;
-        if (c < 0 || c >= cols || op.row < 0 || op.row >= rows) continue;
+        if (c < 0 || c >= cols || row < 0 || row >= rows) continue;
         const code = glyphs[i].charCodeAt(0);
         if (code === 32) continue; // spaces stay empty, not blank glyphs
-        chars[op.row * cols + c] = code;
-        tone[op.row * cols + c] = op.tone;
+        chars[row * cols + c] = code;
+        tone[row * cols + c] = op.tone;
       }
       if (op.kind === 'link') {
-        links.push({ col: op.col, row: op.row, len: glyphs.length, href: op.href, label: op.s });
+        links.push({ col: op.col, row, len: glyphs.length, href: op.href, label: op.s });
       }
     }
 
@@ -138,7 +146,8 @@ class Draft {
       }
     }
 
-    return { cols, rows, chars, tone, textCells, links, home: this.home, runId, runCount };
+    const home = { col: this.home.col, row: this.home.row + shift };
+    return { cols, rows, chars, tone, textCells, links, home, runId, runCount };
   }
 }
 
@@ -212,7 +221,7 @@ const LEFT_W = 52;
 const RIGHT_W = 46;
 const NARROW_W = 54; // exactly wide enough for MONASYPOV as block type
 
-export function compose(cols: number): Plane {
+export function compose(cols: number, minRows = 0): Plane {
   const d = new Draft();
   const twoUp = cols >= LEFT_W + RIGHT_W + 8 + 8;
 
@@ -232,16 +241,16 @@ export function compose(cols: number): Plane {
 
     // Left column: the work, newest first.
     let yl = d.block(x0, top, 'NOW', Tone.Display) + 2;
-    for (const r of NOW) yl = roleBlock(d, x0, yl, r) + 1;
+    for (const r of NOW) yl = roleBlock(d, x0, yl, r) + 2;
     yl += 2;
     yl = d.block(x0, yl, 'BEFORE', Tone.Display) + 2;
-    for (const r of BEFORE) yl = roleBlock(d, x0, yl, r) + 1;
+    for (const r of BEFORE) yl = roleBlock(d, x0, yl, r) + 2;
 
     // Right column: school, tools, how to reach him.
     let yr = d.block(xR, top, 'EDU', Tone.Display) + 2;
-    yr = paintEdu(d, xR, yr) + 1;
+    yr = paintEdu(d, xR, yr) + 2;
     yr = d.block(xR, yr, 'MAKES', Tone.Display) + 2;
-    yr = paintMakes(d, xR, yr) + 3;
+    yr = paintMakes(d, xR, yr) + 4;
     yr = d.block(xR, yr, 'REACH', Tone.Display) + 2;
     paintReach(d, xR, yr);
   } else {
@@ -256,18 +265,18 @@ export function compose(cols: number): Plane {
     y += 3;
 
     y = d.block(x0, y, 'NOW', Tone.Display) + 2;
-    for (const r of NOW) y = roleBlock(d, x0, y, r) + 1;
+    for (const r of NOW) y = roleBlock(d, x0, y, r) + 2;
     y += 2;
     y = d.block(x0, y, 'BEFORE', Tone.Display) + 2;
-    for (const r of BEFORE) y = roleBlock(d, x0, y, r) + 1;
+    for (const r of BEFORE) y = roleBlock(d, x0, y, r) + 2;
     y += 2;
     y = d.block(x0, y, 'EDU', Tone.Display) + 2;
-    y = paintEdu(d, x0, y) + 1;
+    y = paintEdu(d, x0, y) + 2;
     y = d.block(x0, y, 'MAKES', Tone.Display) + 2;
-    y = paintMakes(d, x0, y) + 3;
+    y = paintMakes(d, x0, y) + 4;
     y = d.block(x0, y, 'REACH', Tone.Display) + 2;
     paintReach(d, x0, y);
   }
 
-  return d.bake(cols);
+  return d.bake(cols, minRows);
 }

@@ -79,7 +79,8 @@ function build(): void {
 
   const cols = Math.max(20, Math.floor(w / cellW));
   const previous = field;
-  plane = compose(cols);
+  // Pad the plane to the viewport so haze reaches every edge of the screen.
+  plane = compose(cols, Math.ceil(h / cellH));
 
   const dpr = Math.min(2, devicePixelRatio || 1);
   canvas.width = Math.round(w * dpr);
@@ -90,7 +91,7 @@ function build(): void {
   atlas = new Atlas(cellW, cellH, dpr, m.fontPx, charsetFor(plane), palette);
 
   originX = Math.round((w - cols * cellW) / 2);
-  spacer.style.height = `${Math.max(plane.rows * cellH + cellH * 2, h)}px`;
+  spacer.style.height = `${Math.max(plane.rows * cellH, h)}px`;
 
   field = new Field(plane.cols, plane.rows, plane.runCount);
   if (previous && previous.cols === plane.cols && previous.rows === plane.rows) {
@@ -140,8 +141,10 @@ function buildHotspots(): void {
 }
 
 function syncOrigin(): void {
-  const slack = innerHeight - plane.rows * cellH;
-  originY = slack > 0 ? Math.round(slack / 2) : -Math.round(scrollY);
+  // The plane always covers at least the viewport, so it is top-aligned and
+  // the composition is centred inside the plane rather than the plane inside
+  // the window.
+  originY = -Math.round(scrollY);
   hotspots.style.transform = `translateY(${originY}px)`;
 }
 
