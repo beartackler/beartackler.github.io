@@ -9,6 +9,13 @@
 import { BLOCK_ROWS, blockRows, blockWidth } from './blockfont';
 import { BEFORE, EDU, MAKES, NOW, PERSON, type Role } from './resume';
 
+/**
+ * Cell height as a multiple of cell width. Block type is 5 cells tall, so this
+ * *is* the wordmark's proportion; 1.4 puts it at a normal uppercase width.
+ * Lives here because the composition reasons about it too.
+ */
+export const CELL_ASPECT = 1.4;
+
 export const Tone = {
   Display: 0,
   Ink: 1,
@@ -37,8 +44,15 @@ export type Plane = {
   textCells: number;
   /** Where a keyboard visitor's lantern starts: on the name, not in a gutter. */
   home: { col: number; row: number };
-  /** Where the ikigai mark first appears: just past the end of the wordmark. */
-  markAnchor: { col: number; row: number };
+  /** A blinking block after the copy on the small-screen card, if there is one. */
+  caret: { col: number; row: number } | null;
+  /**
+   * Where the ikigai mark rests before the second act, and how many rows it
+   * may occupy there. The height is what sets its size: the mark has to fit
+   * the band beside the wordmark without crowding the rule underneath, and
+   * that band is a property of the composition, not of the viewport.
+   */
+  markRest: { col: number; row: number; rows: number };
   /**
    * Which word each cell belongs to. Resolution is computed per word rather
    * than per cell, so type snaps into focus whole instead of dissolving at
@@ -75,7 +89,8 @@ class Draft {
   maxRow = 0;
   maxCol = 0;
   home = { col: 0, row: 0 };
-  markAnchor = { col: 0, row: 0 };
+  markRest = { col: 0, row: 0, rows: 10 };
+  caret: { col: number; row: number } | null = null;
 
   text(col: number, row: number, s: string, tone: ToneValue): void {
     if (!s) return;
@@ -156,7 +171,8 @@ class Draft {
     }
 
     const home = { col: this.home.col, row: this.home.row + shift };
-    const markAnchor = { col: this.markAnchor.col, row: this.markAnchor.row + shift };
+    const markRest = { ...this.markRest, row: this.markRest.row + shift };
+    const caret = this.caret && { col: this.caret.col, row: this.caret.row + shift };
     // "Words" excludes block type (whose strokes are runs of their own), the
     // halftone rule (one very long run) and single-character separators, so
     // the counter reports something a visitor would actually call a word.
@@ -184,7 +200,8 @@ class Draft {
       textCells,
       links,
       home,
-      markAnchor,
+      markRest,
+      caret: caret ?? null,
       runId,
       runCount,
       isWord,
@@ -274,13 +291,28 @@ export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
     const xR = x0 + LEFT_W + gutter;
 
     d.home = { col: x0 + 12, row: 4 };
-    d.markAnchor = { col: x0 + blockWidth(PERSON.name) + 11, row: 6 };
     let y = paintName(d, x0, 2, contentW) + 2;
     d.text(x0, y, PERSON.tagline, Tone.Dim);
     y += 2;
-    d.text(x0, y, rulePattern(contentW), Tone.Muted);
+    const ruleRow = y;
+    d.text(x0, ruleRow, rulePattern(contentW), Tone.Muted);
 
-    const top = y + 3;
+    const top = ruleRow + 3;
+
+    // The mark rests in the middle of the layout, centred on the gutter.
+    //
+    // Beside the wordmark is the obvious place and it does not work: the band
+    // between the top of the name and the rule is about ten rows on a normal
+    // desktop, and four overlapping rings need something closer to seventeen
+    // before they read as four rings rather than as one lumpy one. The gutter
+    // is the only run of the poster tall enough, and at a normal width the
+    // whole mark lands inside it without touching a single character.
+    const restRows = 17;
+    d.markRest = {
+      col: x0 + LEFT_W + Math.round(gutter / 2),
+      row: top + 12,
+      rows: restRows,
+    };
 
     // Left column: the work, newest first.
     let yl = d.block(x0, top, 'NOW', Tone.Display) + 2;
@@ -321,10 +353,58 @@ export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
     paintReach(d, x0, y);
 
     // Nothing fits beside a wrapped wordmark on a phone, but the ragged right
-    // edge of the single column leaves a clear strip for its whole height.
-    // Set once the composition is measured, so it lands in that strip.
-    d.markAnchor = { col: cols - 10, row: Math.round(d.maxRow * 0.42) };
+    // edge of the single column leaves a clear strip for its whole height, so
+    // the band is as tall as the mark wants rather than as tall as a header.
+    // Positioned from its own right edge inward, or it runs off the screen.
+    const restRows = 15;
+    d.markRest = {
+      col: cols - 2 - Math.round((restRows * CELL_ASPECT) / 2),
+      row: Math.round(d.maxRow * 0.42),
+      rows: restRows,
+    };
   }
+
+  return d.bake(cols, minRows, reserveRows);
+}
+
+/**
+ * The small-screen card.
+ *
+ * The whole page is a cursor dragged across a grid, and a touch screen has no
+ * cursor: the lantern has nothing to follow, the two-column poster has nowhere
+ * to go, and the second act has no room to play. Rather than shrink all of it
+ * into something that works badly, say so, in the same type — and hand over
+ * the two things a visitor on a phone actually came for.
+ */
+export function composeCard(cols: number, minRows = 0, reserveRows = 0): Plane {
+  const d = new Draft();
+  const w = Math.min(NARROW_W, cols - 4);
+  const x0 = Math.max(2, Math.floor((cols - w) / 2));
+
+  d.home = { col: x0 + 8, row: 4 };
+  d.markRest = { col: x0 + Math.round(w / 2), row: 6, rows: 10 };
+
+  let y = paintName(d, x0, 2, w) + 2;
+  d.text(x0, y, PERSON.tagline, Tone.Dim);
+  y += 2;
+  d.text(x0, y, rulePattern(w), Tone.Muted);
+  y += 3;
+
+  d.text(x0, y++, 'this page is a room you walk', Tone.Ink);
+  d.text(x0, y, 'through with a cursor.', Tone.Ink);
+  y += 2;
+  const closing = 'it wants a desktop.';
+  d.text(x0, y, closing, Tone.Accent);
+  // The same blinking block the page opens with, so the card is recognisably
+  // the same machine, just resting.
+  d.caret = { col: x0 + closing.length + 1, row: y };
+  y += 3;
+
+  d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
+  y += 2;
+  d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Dim);
+  d.link(x0, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
+  d.link(x0, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
 
   return d.bake(cols, minRows, reserveRows);
 }

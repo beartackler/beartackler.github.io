@@ -2,7 +2,7 @@ import './style.css';
 import { Atlas, type Palette } from './atlas';
 import { Blossom } from './blossom';
 import { Field } from './field';
-import { compose, type Plane } from './layout';
+import { CELL_ASPECT, compose, composeCard, type Plane } from './layout';
 import { Clearance, MarkField, markExtent, SPREAD } from './mark';
 import { Renderer, type Overlay } from './render';
 
@@ -20,6 +20,14 @@ const MARK_DRAW_SECONDS = 4.2;
 const JOURNEY_SPAN = 1.35;
 /** Fraction of the plane the plum branch claims; the mark gets the rest. */
 const BLOSSOM_BAND = 0.38;
+/**
+ * Seconds for the journey to catch up to the scroll position, near enough.
+ *
+ * A wheel notch is a jump, and the mark is rasterised to whole cells, so
+ * driving the second act straight off `scrollY` makes it advance in visible
+ * steps. Following the scroll with a spring turns each notch into travel.
+ */
+const SCROLL_LAG = 0.16;
 
 const canvas = document.getElementById('field') as HTMLCanvasElement;
 const spacer = document.getElementById('spacer') as HTMLElement;
@@ -27,6 +35,7 @@ const hotspots = document.getElementById('hotspots') as HTMLElement;
 const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const nudge = document.getElementById('nudge') as HTMLElement;
+const caret = document.getElementById('caret') as HTMLElement;
 const pct = document.getElementById('pct') as HTMLElement;
 const chrome = document.querySelector('.chrome') as HTMLElement;
 
@@ -59,6 +68,21 @@ let originY = 0;
 let posterFits = true;
 /** Rows at the bottom of the plane the fixed controls sit over. */
 let chromeRows = 0;
+/** True when we are showing the small-screen card instead of the page. */
+let cardMode = false;
+/** Seconds the card has been fading up. */
+let cardAt = 0;
+
+/**
+ * Whether this screen gets the card rather than the page.
+ *
+ * A touch screen has no cursor for the lantern to follow, so the mechanic the
+ * whole page is built on simply is not available. Width alone is not the test:
+ * a narrow desktop window still has a pointer and gets the stacked poster.
+ */
+function smallScreen(): boolean {
+  return (coarse.matches && innerWidth < 900) || innerWidth < 560;
+}
 
 let target: { c: number; r: number } | null = null;
 let cursor: { c: number; r: number } | null = null;
@@ -83,14 +107,15 @@ let markOn = false;
 let markPhase = 0;
 let painted = new Uint8Array(0);
 let markComplete = false;
+/** Where the scroll bar is. */
+let scrollRaw = 0;
+/** Where the journey has got to; chases `scrollRaw`. See SCROLL_LAG. */
 let scrollP = 0;
 let blossom: Blossom | null = null;
 let overlay: Overlay | null = null;
 
 function cellMetrics(cw: number) {
-  // Block type is 5 cells tall, so the cell aspect *is* the wordmark's
-  // proportion; 1.4 puts it at a normal uppercase width-to-height.
-  const ch = Math.round(cw * 1.4);
+  const ch = Math.round(cw * CELL_ASPECT);
   return { cw, ch, fontPx: Math.round(ch * 0.95) };
 }
 
@@ -101,7 +126,7 @@ function cellMetrics(cw: number) {
  * the cell shrinks until the composition also fits the height. Scrolling is
  * reserved for the second act.
  */
-function fitMetrics(w: number, h: number) {
+function fitMetrics(w: number, h: number, plan: typeof compose) {
   // The fixed controls are not part of the plane, so their height comes off
   // the budget before anything is measured against it.
   h -= chrome.offsetHeight + 6;
@@ -111,7 +136,7 @@ function fitMetrics(w: number, h: number) {
   for (let attempt = 0; attempt < 6; attempt++) {
     const m = cellMetrics(cw);
     const cols = Math.max(20, Math.floor(w / m.cw));
-    const need = compose(cols).rows * m.ch;
+    const need = plan(cols).rows * m.ch;
     if (need <= h) return { ...m, cols, fits: true };
     if (cw <= 4) return { ...m, cols, fits: false };
     cw = Math.max(4, Math.min(cw - 1, Math.floor(cw * (h / need))));
@@ -132,7 +157,10 @@ function charsetFor(p: Plane): number[] {
 function build(): void {
   const w = innerWidth;
   const h = innerHeight;
-  const m = fitMetrics(w, h);
+  cardMode = smallScreen();
+  const plan = cardMode ? composeCard : compose;
+  document.body.classList.toggle('card', cardMode);
+  const m = fitMetrics(w, h, plan);
   cellW = m.cw;
   cellH = m.ch;
   posterFits = m.fits;
@@ -141,7 +169,7 @@ function build(): void {
   // Pad the plane to the viewport so haze reaches every edge of the screen,
   // but keep the composition clear of the controls.
   chromeRows = Math.ceil((chrome.offsetHeight + 6) / cellH);
-  plane = compose(m.cols, Math.ceil(h / cellH), chromeRows);
+  plane = plan(m.cols, Math.ceil(h / cellH), chromeRows);
 
   const dpr = Math.min(2, devicePixelRatio || 1);
   canvas.width = Math.round(w * dpr);
@@ -179,10 +207,22 @@ function build(): void {
   runInk = new Float32Array(plane.runCount);
   buildOdometer();
 
-  if (reduced.matches) {
+  if (cardMode) {
+    // Nothing to uncover: the card is the message, so it simply arrives.
+    field.revealAll(hasChar);
+    cardAt = 0;
+    boot.classList.add('gone');
+  } else if (reduced.matches) {
     field.revealAll(hasChar);
     // A static poster: hand over the mark rather than withholding it.
     unlockMark(true);
+  }
+  hotspots.style.pointerEvents = 'auto';
+  if (plane.caret) {
+    caret.style.left = `${originX + plane.caret.col * cellW}px`;
+    caret.style.top = `${plane.caret.row * cellH}px`;
+    caret.style.width = `${cellW}px`;
+    caret.style.height = `${cellH}px`;
   }
   buildHotspots();
   buildReadPath();
@@ -223,7 +263,7 @@ function buildHotspots(): void {
 
 /** Scrolling exists only while there is a second act to scroll through. */
 function journeySpan(): number {
-  return markOn && posterFits ? innerHeight * JOURNEY_SPAN : 0;
+  return markOn && posterFits && !cardMode ? innerHeight * JOURNEY_SPAN : 0;
 }
 
 function syncScrollRange(): void {
@@ -246,7 +286,21 @@ function syncOrigin(): void {
   hotspots.style.transform = `translateY(${originY}px)`;
 
   const span = journeySpan();
-  scrollP = span > 0 ? Math.min(1, Math.max(0, scrollY / span)) : 0;
+  scrollRaw = span > 0 ? Math.min(1, Math.max(0, scrollY / span)) : 0;
+}
+
+/** Eases the journey toward the scroll position, and settles in bounded time. */
+function followScroll(dt: number): void {
+  const gap = scrollRaw - scrollP;
+  const far = Math.abs(gap);
+  if (far < 0.0005) {
+    scrollP = scrollRaw;
+    return;
+  }
+  // Proportional while there is distance to cover, with a floor so the last
+  // sliver closes instead of trailing an exponential tail for a full second.
+  const step = Math.min(far, Math.max(far * Math.min(1, dt / SCROLL_LAG), dt * 0.4));
+  scrollP += Math.sign(gap) * step;
 }
 
 function toPlane(clientX: number, clientY: number) {
@@ -327,6 +381,7 @@ function resetMark(): void {
   markPhase = 0;
   markComplete = false;
   scrollP = 0;
+  scrollRaw = 0;
   painted.fill(0);
   markMask.fill(0);
   field.floor.fill(0);
@@ -362,7 +417,10 @@ function stepMark(dt: number): void {
   // ends. Two curves, because "detaching" and "growing" want different feels.
   const move = 1 - (1 - scrollP) * (1 - scrollP);
   const e = smooth(scrollP);
-  const baseR = Math.max(5, plane.cols * 0.034);
+  // Small enough to sit in the band the composition left for it, which is
+  // also what makes it read as granular before it grows.
+  const rest = plane.markRest;
+  const baseR = (rest.rows * aspect) / (2 * (1 + SPREAD));
   // The mark ends up filling exactly the band between the branch and the
   // controls, so it reads as large on a wide desktop and on a tall phone
   // alike. A fixed fraction of the width cannot do both, and the chrome's
@@ -374,11 +432,10 @@ function stepMark(dt: number): void {
   const endR = endExtent / (2 * (1 + SPREAD));
   const r = baseR + (endR - baseR) * e;
 
-  const anchor = plane.markAnchor;
   const cyEnd = (top + bottom) / 2;
-  const cx = anchor.col + (plane.cols / 2 - anchor.col) * move;
+  const cx = rest.col + (plane.cols / 2 - rest.col) * move;
   const halfRows = markExtent(r) / aspect / 2;
-  let cy = anchor.row + (cyEnd - anchor.row) * move;
+  let cy = rest.row + (cyEnd - rest.row) * move;
   // At rest the mark must sit fully on the plane; once it is growing, letting
   // the bottom run off the screen is the composition, not a bug.
   cy = Math.max(cy, halfRows * (1 - e) + 1);
@@ -392,6 +449,10 @@ function stepMark(dt: number): void {
     radius: r,
     thick: 0.75 + 0.4 * e,
     phase: markPhase,
+    // Feathered while it is in motion, crisp at either end of the journey:
+    // a hard ring band pops cells in and out a whole glyph at a time as it
+    // grows, and the feather turns each of those pops into a fade.
+    soft: 4 * scrollP * (1 - scrollP),
     // A generous halo while the mark sits beside the wordmark; hairline gaps
     // while it travels through a page that is still legible; nothing to
     // respect once the resume has gone.
@@ -425,7 +486,7 @@ function stepMark(dt: number): void {
 
 function stepBlossom(): void {
   if (!overlay || !blossom) return;
-  const p = smooth((scrollP - 0.05) / 0.88);
+  const p = smooth((scrollP - 0.26) / 0.69);
   overlay.alpha.fill(0);
   if (p > 0) blossom.render(overlay, p);
 }
@@ -508,6 +569,19 @@ function frame(now: number): void {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   syncOrigin();
+  followScroll(dt);
+
+  if (cardMode) {
+    cardAt += dt;
+    // The row skew in `fade` turns a plain ramp into a top-down wipe, so the
+    // card writes itself on rather than switching on.
+    renderer.fade = reduced.matches ? 1 : Math.min(1, cardAt / 1.15);
+    field.resolveRuns(plane.runId, dt);
+    renderer.draw(originX, originY, bg);
+    caret.style.opacity = String(Math.max(0, Math.min(1, cardAt - 0.9)));
+    requestAnimationFrame(frame);
+    return;
+  }
 
   const idle = now - lastInput;
   const ghostAfter = coarse.matches ? IDLE_GHOST / 2 : IDLE_GHOST;
@@ -584,11 +658,13 @@ function frame(now: number): void {
 
 /** Everything the scroll position drives, in one place. */
 function applyJourney(): void {
-  // The resume is gone well before the mark finishes growing, so the two
-  // never fight for attention.
-  renderer.fade = 1 - smooth(scrollP / 0.45);
-  renderer.tint = smooth((scrollP - 0.06) / 0.3);
-  pct.style.opacity = String(1 - Math.min(1, scrollP * 3));
+  // The resume — and with it every amber thing on the page — is gone before
+  // the blossom is legible, so the two palettes hand over rather than
+  // overlap. The mark keeps growing across the gap, so the beat of near-empty
+  // screen between the acts reads as a breath instead of a dead zone.
+  renderer.fade = 1 - smooth(scrollP / 0.32);
+  renderer.tint = smooth((scrollP - 0.04) / 0.24);
+  pct.style.opacity = String(1 - Math.min(1, scrollP / 0.28));
   // Don't leave invisible links clickable once the resume has faded.
   hotspots.style.pointerEvents = scrollP > 0.25 ? 'none' : 'auto';
   // Wait for the rings to finish drawing themselves before asking for more.
@@ -641,11 +717,13 @@ function typeHint(idle: number): void {
 // ── Input ──────────────────────────────────────────────────────────────────
 
 addEventListener('pointermove', (e) => {
+  if (cardMode) return;
   noteInput();
   target = toPlane(e.clientX, e.clientY);
 });
 
 addEventListener('pointerdown', (e) => {
+  if (cardMode) return;
   noteInput();
   const p = toPlane(e.clientX, e.clientY);
   target = p;
@@ -661,7 +739,7 @@ function revealAll(): void {
 }
 
 addEventListener('keydown', (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (cardMode || e.metaKey || e.ctrlKey || e.altKey) return;
 
   // Space reveals while anything is still hidden; once it is all up, hand the
   // key back to the browser so it pages through the second act.
@@ -700,7 +778,9 @@ addEventListener('keydown', (e) => {
   };
 });
 
-document.getElementById('reveal-toggle')!.addEventListener('click', revealAll);
+document.getElementById('reveal-toggle')!.addEventListener('click', () => {
+  if (!cardMode) revealAll();
+});
 
 let resizeAt = 0;
 addEventListener('resize', () => {
@@ -729,7 +809,9 @@ async function start(): Promise<void> {
   });
 
   // Deep link, so a link can skip straight to the readable state.
-  if (new URLSearchParams(location.search).has('reveal') || reduced.matches) revealAll();
+  if (!cardMode && (new URLSearchParams(location.search).has('reveal') || reduced.matches)) {
+    revealAll();
+  }
 
   requestAnimationFrame((t) => {
     last = t;

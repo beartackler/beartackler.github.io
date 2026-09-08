@@ -8,7 +8,12 @@ import { Atlas, Sheet } from './atlas';
 import { Field } from './field';
 import type { LinkRegion, Plane } from './layout';
 
-const ALPHA_STEPS = 12;
+/**
+ * Alpha buckets. Every step is a visible brightness plateau while the resume
+ * fades out on scroll, so this is a smoothness knob, not just a batching one.
+ * Empty buckets are skipped, so the cost of raising it is nil.
+ */
+const ALPHA_STEPS = 20;
 const FLOOR = 0.04; // below this a cell is simply dark
 const HAZE_TEXT = 0.78; // haze is stronger over text than over empty field
 const HAZE_EMPTY = 0.52;
@@ -27,6 +32,17 @@ const DRAW_ORDER = [
   Sheet.Bloom,
   Sheet.BloomDeep,
 ];
+
+/**
+ * How much earlier the top of the page fades than the bottom.
+ *
+ * A single alpha ramped across the whole plane steps through its buckets in
+ * lockstep, which reads as the page blinking down through a handful of levels.
+ * Skewing it by row turns the same fade into a wipe: the resume dissolves from
+ * the top down, following the branch in, and no two rows change level on the
+ * same frame.
+ */
+const FADE_SKEW = 0.4;
 
 /** A second layer drawn above the grid, owned by the plum blossom. */
 export type Overlay = {
@@ -107,13 +123,19 @@ export class Renderer {
     );
     const ramp = atlas.ramp;
     const scramble = atlas.scramble;
-    const fade = this.fade;
+    const fadeBase = this.fade;
     const tint = this.tint;
+    const lastPlaneRow = Math.max(1, plane.rows - 1);
     const hotRow = this.hot ? this.hot.row : -1;
     const hotCol = this.hot ? this.hot.col : 0;
     const hotEnd = this.hot ? this.hot.col + this.hot.len : 0;
 
     for (let r = firstRow; r <= lastRow; r++) {
+      // Rows near the top of the plane go first; see FADE_SKEW.
+      const fade =
+        fadeBase >= 1
+          ? 1
+          : Math.min(1, Math.max(0, (fadeBase - FADE_SKEW * (1 - r / lastPlaneRow)) / (1 - FADE_SKEW)));
       for (let c = 0; c < plane.cols; c++) {
         const i = r * plane.cols + c;
         const glow = field.floor[i];

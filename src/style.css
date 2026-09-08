@@ -17,11 +17,17 @@
   --glow-hot: oklch(0.82 0.175 54);
 
   /* Act two: ink, snow and plum. Nothing amber survives the scroll. */
-  /* Wood recedes so the blossom carries the composition; bright bark turns
-     the branch into scratches competing with the flowers. */
-  --bark: oklch(0.58 0.012 30);
-  --bloom: oklch(0.79 0.125 12);
-  --bloom-deep: oklch(0.62 0.2 22);
+  /* The plum sits at hue ~357, a long way round from the safelight's 48. At
+     hue 12 it was only 35 degrees off the amber, which reads as two oranges
+     that don't match rather than as a change of palette. The acts are timed so
+     the two never share the screen at strength; the distance is what makes the
+     handover read as deliberate when they briefly do. */
+  --bloom: oklch(0.78 0.15 357);
+  --bloom-deep: oklch(0.57 0.205 8);
+  /* Wood recedes so the blossom carries the composition; bright bark turns the
+     branch into scratches competing with the flowers. Bone at low brightness,
+     not a hue of its own — act two is black, bone and plum, and nothing else. */
+  --bark: oklch(0.56 0.008 60);
 
   --grid: 'Departure Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --doc: ui-serif, 'Iowan Old Style', Charter, Palatino, Georgia, serif;
@@ -151,6 +157,43 @@ body:not(.ready) .chrome {
   margin-left: 0.15em;
   color: var(--glow);
   animation: blink 1.15s steps(1, end) infinite;
+}
+
+/* ── The small-screen card ────────────────────────────────────────────── */
+
+/* Everything that belongs to the cursor game goes with the cursor. */
+body.card #pct,
+body.card #reveal-toggle,
+body.card #nudge,
+body.card #boot,
+body.card #hint {
+  display: none;
+}
+
+/* The composition already carries the resume link and the contacts, so the
+   controls would only repeat them — and their reserved rows push the card off
+   centre. Hiding them before the plane is composed reclaims the space. */
+body.card .chrome {
+  display: none;
+}
+
+/* No lantern to promise, so no crosshair. */
+body.card {
+  cursor: default;
+}
+
+/* The same blinking block the page opens with, parked after the last line. */
+#caret {
+  position: fixed;
+  z-index: 3;
+  display: none;
+  background: var(--glow);
+  pointer-events: none;
+  animation: blink 1.15s steps(1, end) infinite;
+}
+
+body.card #caret {
+  display: block;
 }
 
 /* ── The invitation ────────────────────────────────────────────────────── */
@@ -462,7 +505,8 @@ body:not(.ready) .chrome {
 
 @media (prefers-reduced-motion: reduce) {
   #boot span,
-  #nudge span::after {
+  #nudge span::after,
+  #caret {
     animation: none;
   }
   /* Without the falling spark the rail needs to read as a rail on its own. */

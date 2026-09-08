@@ -44,6 +44,12 @@ export type MarkPass = {
   phase: number;
   /** How much room to leave around the type; see `Clearance`. */
   clearance: ClearanceValue;
+  /**
+   * 0 draws a hard-edged ring, 1 feathers it to nothing at the band edge.
+   * Feathering is for when the mark is moving: it lets a cell fade in as an
+   * arc sweeps over it instead of appearing at full strength.
+   */
+  soft: number;
   /** Cells the lantern has swept, brightened permanently. Null to ignore. */
   painted: Uint8Array | null;
   base: number;
@@ -87,7 +93,7 @@ export class MarkField {
    */
   evaluate(p: MarkPass): void {
     const { cols, rows, aspect } = this;
-    const { out, mask, cx, cy, radius, thick, phase, clearance, painted } = p;
+    const { out, mask, cx, cy, radius, thick, phase, clearance, painted, soft } = p;
     const blocked =
       clearance === Clearance.Wide
         ? this.blockedWide
@@ -121,6 +127,8 @@ export class MarkField {
         let bits = 0;
         let overlap = 0;
         let earliest = 2;
+        /** Strongest distance-to-centreline across the rings covering this cell. */
+        let feather = 0;
         for (let k = 0; k < 4; k++) {
           const dx = x - centres[k][0];
           const dy = y - centres[k][1];
@@ -128,6 +136,10 @@ export class MarkField {
           if (d2 <= inner || d2 >= outer) continue;
           bits |= 1 << k;
           overlap++;
+          if (soft > 0.01) {
+            const off = Math.abs(Math.sqrt(d2) - radius) / thick;
+            if (1 - off > feather) feather = 1 - off;
+          }
           if (phase < 1) {
             // Each ring traces from its top, staggered so they arrive in turn.
             const t = ((Math.atan2(dy, dx) + Math.PI / 2) / TAU + 1) % 1;
@@ -141,6 +153,7 @@ export class MarkField {
         const lit = painted && painted[i] ? p.paintedBase : p.base;
         let v = lit * (1 + 0.3 * (overlap - 1));
         if (overlap >= 3) v = Math.max(v, 0.78);
+        if (soft > 0.01) v *= 1 - soft * 0.5 * (1 - feather);
         out[i] = Math.min(0.95, v);
       }
     }

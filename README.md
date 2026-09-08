@@ -9,9 +9,9 @@ readable type at the core, resolving a word at a time. Dwell and it burns in
 permanently; sweep past and it fades. Leave it alone and the page starts
 reading itself. A readout in the corner tracks how much you've uncovered.
 
-Uncover the page and four rings — the ikigai diagram — draw themselves in
-beside the wordmark. Sweeping the lantern along a ring burns that stretch in.
-One word appears at the bottom of the screen: `scroll`.
+Uncover the page and four rings — the ikigai diagram — draw themselves in the
+middle of it. Sweeping the lantern along a ring burns that stretch in. One word
+appears at the bottom of the screen: `scroll`.
 
 That is the second act. Scrolling fades the resume out, carries the mark down
 to the middle of the screen and grows it until it fills the page, and grows a
@@ -22,6 +22,11 @@ puts the resume back exactly as it was, mark and all.
 Nobody is trapped in the game. `space` lights the whole thing, `resume` is the
 PDF, and the full resume is in the DOM at all times for screen readers,
 crawlers and `noscript`.
+
+A touch screen has no cursor, so it gets a card instead of the page: the
+wordmark, the rule, one line about what it is missing, and the two things a
+visitor on a phone actually came for. Shrinking a cursor game onto a phone
+produces something that works badly; saying so produces something that works.
 
 ## How it works
 
@@ -36,8 +41,10 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   edges, and keeps the bottom clear of the fixed controls.
 - **`src/mark.ts`** — the four rings, evaluated live so scroll can move and grow
   them. Three clearance modes: a generous halo around every character while the
-  mark rests beside the wordmark, hairline gaps while it travels through a page
-  that is still legible, and nothing to respect once the resume has gone.
+  mark is at rest, hairline gaps while it travels through a page that is still
+  legible, and nothing to respect once the resume has gone. The ring band
+  feathers while the mark is in motion, so a cell fades in as an arc sweeps
+  over it rather than appearing whole.
 - **`src/blossom.ts`** — the plum branch. Generated once from a fixed seed, with
   every segment, flower and falling petal carrying the scroll position at which
   it appears, which is what makes the growth reversible. Amplitudes are
@@ -60,13 +67,27 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   few dozen context state changes instead of several thousand `fillText` calls.
   `fade` and `tint` are the whole of the second act's crossfade: the lantern's
   contribution is scaled by `fade` *before* anything is compared against it, so
-  the mark can win cells the lantern already burned in.
+  the mark can win cells the lantern already burned in. `fade` is skewed by row
+  rather than applied flat, which turns a fade into a top-down wipe and stops
+  the whole plane stepping through its alpha buckets in lockstep.
 
-`public/og.png` is a share card rendered from the page itself, so a link
-preview shows the real thing.
+`public/og.png` is a share card rendered from the page itself, scrolled to the
+end of the second act: a link preview is a thumbnail, and the branch and the
+mark survive being shrunk in a way that a page of 9px type does not.
 
-Zero runtime dependencies. ~31 kB of JS, 13 kB gzipped. 8.3 ms median
-frame with the page fully lit, and the same through the second act.
+Zero runtime dependencies. ~32 kB of JS, 13.6 kB gzipped. 8.3 ms median frame
+with the page fully lit, and the same through the second act.
+
+## Colour
+
+Act one is black, bone and a safelight amber. Act two is black, bone and plum,
+and the amber is gone before the plum arrives — the fade finishes at 32% of the
+scroll and the branch does not start growing until 26%.
+
+The plum sits at OKLCH hue 357, most of the way round the wheel from the
+safelight's 48. It started at hue 12, which was only 35 degrees off, and 35
+degrees is the worst possible distance: too far to read as one colour and too
+close to read as two, so the page looked like two oranges that didn't match.
 
 ## Accessibility
 
@@ -79,6 +100,8 @@ frame with the page fully lit, and the same through the second act.
   second act at all.
 - The controls are lit by the lantern, so bringing it near the corner surfaces
   them; they also surface on their own for anyone stuck after fifteen seconds.
+- Touch screens get the card, which is static, legible immediately, and carries
+  the PDF and the contacts as real anchors.
 - Arrow keys drive the lantern until there is a second act to scroll through,
   then they hand back to the browser. `space` reveals while anything is still
   hidden and pages through the second act once it is not. `r` resets to a black
