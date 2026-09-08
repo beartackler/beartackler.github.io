@@ -137,4 +137,10 @@ npm run build
 
 Pushing to `main` deploys via GitHub Actions.
 
+`banner.html` renders `public/linkedin-banner.png` (1584 × 396) from the page's
+own parts — the same glyph atlas, block face, mark geometry and palette tokens,
+composed for a 4:1 strip, so it cannot drift from the site's style. It is a dev
+entry only; Vite builds `index.html` and nothing else. Run `npm run dev`, open
+`/banner.html`, and screenshot the canvas.
+
 Type is [Departure Mono](https://departuremono.com) by Helena Zhang.

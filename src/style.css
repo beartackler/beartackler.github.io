@@ -293,10 +293,12 @@ body.card #caret {
 }
 
 #coda figcaption {
-  margin-top: 1.1rem;
+  margin-top: 1.15rem;
   color: var(--muted);
   font-size: 0.72rem;
-  letter-spacing: 0.24em;
+  /* Tracked, but not so far that the credit runs wider than the line it
+     credits — both are ranged right, so that inverts the hierarchy. */
+  letter-spacing: 0.14em;
 }
 
 /* ── Chrome ────────────────────────────────────────────────────────────── */

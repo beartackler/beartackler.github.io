@@ -58,7 +58,7 @@ function resumeDocument(): Plugin {
       </section>
       <footer>
         <blockquote>${data.coda.lines.map(esc).join(' ')}</blockquote>
-        <p class="meta">${esc(data.coda.credit)}</p>
+        <p class="meta"><cite>${esc(data.coda.credit)}</cite></p>
       </footer>
     </main>`;
 
