@@ -1,4 +1,54 @@
+<!--
+  The ikigai mark, reduced for a 16px tab.
+
+  Four overlapping rings drawn straight (src/mark.ts) waffle at tab size: at
+  SPREAD 0.58 the interior has eight dark holes, and 16px cannot hold them, so
+  the mark reads as a grille. Two things carry it instead.
+
+  The heavy stroke is the *union* outline — union(r) minus union(r - 3), which
+  keeps only the silhouette of all four rings, because any point on one ring's
+  arc that lies deeper than the stroke inside another is knocked out. One
+  continuous line, so it survives being 16 pixels wide.
+
+  The thin rings underneath are the real diagram. They are thin and opaque
+  rather than thick and faint on purpose: it is stroke *width* that falls below
+  a pixel when the icon shrinks, so at 16px they read as nothing but a warmth
+  and at 180px they are crisp. The mark's construction appears as the icon gets
+  room for it.
+
+  The star at the centre is not decoration. The centre sits 7.008 from every
+  ring centre — inside union(r) and outside union(r - 3) — so it is part of the
+  stroke band by definition. Adjacent inset circles overlap and cover the axes;
+  diagonal ones do not, which is why its four arms point at the ring centres.
+  The same rule that draws the mark's edge draws its middle.
+
+  Colours are the bg and glow tokens from src/style.css, converted to sRGB.
+  (Written without the CSS custom-property dashes on purpose: a double
+  hyphen is illegal inside an XML comment and silently breaks the file.)
+-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <mask id="rim" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+      <g fill="#fff">
+        <circle cx="11.044" cy="11.044" r="8.544"/>
+        <circle cx="20.956" cy="11.044" r="8.544"/>
+        <circle cx="20.956" cy="20.956" r="8.544"/>
+        <circle cx="11.044" cy="20.956" r="8.544"/>
+      </g>
+      <g fill="#000">
+        <circle cx="11.044" cy="11.044" r="5.544"/>
+        <circle cx="20.956" cy="11.044" r="5.544"/>
+        <circle cx="20.956" cy="20.956" r="5.544"/>
+        <circle cx="11.044" cy="20.956" r="5.544"/>
+      </g>
+    </mask>
+  </defs>
   <rect width="32" height="32" fill="#0d0a09"/>
-  <rect x="11" y="6" width="10" height="20" fill="#ec7225"/>
+  <g fill="none" stroke="#ec7225" stroke-width="0.9" stroke-opacity="0.5">
+    <circle cx="11.044" cy="11.044" r="8.544"/>
+    <circle cx="20.956" cy="11.044" r="8.544"/>
+    <circle cx="20.956" cy="20.956" r="8.544"/>
+    <circle cx="11.044" cy="20.956" r="8.544"/>
+  </g>
+  <g mask="url(#rim)"><rect width="32" height="32" fill="#ec7225"/></g>
 </svg>

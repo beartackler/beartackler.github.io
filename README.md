@@ -83,6 +83,15 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 end of the second act: a link preview is a thumbnail, and the branch and the
 mark survive being shrunk in a way that a page of 9px type does not.
 
+`public/favicon.svg` is the mark reduced for a 16px tab. Drawn straight, four
+overlapping rings leave eight dark holes in the middle and read as a grille at
+that size, so the heavy stroke is the *union* outline — union(r) minus an inset
+copy, which keeps only the silhouette of all four rings as one continuous line.
+The real diagram sits underneath as thin, opaque rings rather than thick, faint
+ones: stroke width is what falls below a pixel as the icon shrinks, so the
+construction is invisible at 16px and crisp at 180px. `apple-touch-icon.png` is
+the same geometry with more padding, since iOS masks it to a squircle.
+
 Zero runtime dependencies. ~32 kB of JS, 13.6 kB gzipped. 8.3 ms median frame
 with the page fully lit, and the same through the second act.
 
