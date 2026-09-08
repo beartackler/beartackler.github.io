@@ -44,6 +44,8 @@ Zero runtime dependencies. ~22 kB of JS, 9.3 kB gzipped.
 ## Accessibility
 
 - Full resume in `<main>` at all times; the canvas is `aria-hidden`.
+- The controls are lit by the lantern, so bringing it near the corner surfaces
+  them; they also surface on their own for anyone stuck after fifteen seconds.
 - Arrow keys drive the lantern; `space` reveals, `p` toggles plain, `r` resets.
 - Focus never lands on something invisible — tabbing into the document switches
   the page to the readable view.

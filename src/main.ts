@@ -18,6 +18,7 @@ const hotspots = document.getElementById('hotspots') as HTMLElement;
 const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const pct = document.getElementById('pct') as HTMLElement;
+const chrome = document.querySelector('.chrome') as HTMLElement;
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const coarse = matchMedia('(pointer: coarse)');
@@ -48,6 +49,12 @@ let cursor: { c: number; r: number } | null = null;
 let radius = MAX_RADIUS;
 let lastInput = performance.now();
 let touched = false;
+/** Where the lantern is, in client pixels, for lighting the chrome. */
+const lanternAt = { x: -9999, y: -9999 };
+let chromeLit = 0;
+let chromeBox: DOMRect | null = null;
+let surfacedAt = 0;
+const startedAt = performance.now();
 
 /** Cell pitch is derived from a target column count, not the other way round. */
 function metrics(w: number) {
@@ -256,7 +263,7 @@ function frame(now: number): void {
   }
 
   const aim = reading ? readerAt(dt) : target;
-  if (aim) {
+  if (aim && !reduced.matches) {
     if (!cursor) cursor = { ...aim };
     const dc = aim.c - cursor.c;
     const dr = aim.r - cursor.r;
@@ -275,6 +282,8 @@ function frame(now: number): void {
     }
     cursor.c += dc;
     cursor.r += dr;
+    lanternAt.x = originX + cursor.c * cellW;
+    lanternAt.y = originY + cursor.r * cellH;
   }
 
   // The cold open is a demo, not the visitor's doing: it must not burn in.
@@ -282,15 +291,38 @@ function frame(now: number): void {
   // than letting its wake fill in as a disc.
   if (!reduced.matches) field.step(dt, hasChar, !booting, booting ? 0.3 : undefined);
   lightHoveredLink();
-  field.resolveRuns(plane.runId, dt);
-  renderer.draw(originX, originY, bg);
+  if (!document.body.classList.contains('plain')) {
+    field.resolveRuns(plane.runId, dt);
+    renderer.draw(originX, originY, bg);
+  }
 
   if (now - pctAt > 250) {
     pctAt = now;
     updatePct();
   }
+  litChrome(now, dt);
 
   requestAnimationFrame(frame);
+}
+
+/**
+ * The controls obey the same physics as the grid: bringing the lantern near
+ * the corner lights them. They stay out of the way otherwise, and surface once
+ * on their own for anyone who has been here a while and found nothing.
+ */
+function litChrome(now: number, dt: number): void {
+  if (!chromeBox) chromeBox = chrome.getBoundingClientRect();
+  const dx = Math.max(chromeBox.left - lanternAt.x, 0, lanternAt.x - chromeBox.right);
+  const dy = Math.max(chromeBox.top - lanternAt.y, 0, lanternAt.y - chromeBox.bottom);
+  let want = Math.max(0, 1 - Math.hypot(dx, dy) / 320);
+  want = want * want * (3 - 2 * want);
+
+  const lost = touched && now - startedAt > 15000 && uncovered < plane.textCells * 0.06;
+  if (lost && surfacedAt === 0) surfacedAt = now;
+  if (surfacedAt && now - surfacedAt < 2600) want = Math.max(want, 1);
+
+  chromeLit += (want - chromeLit) * Math.min(1, dt * 6);
+  chrome.style.setProperty('--lit', chromeLit.toFixed(3));
 }
 
 /** A hovered link lights whole, with a row of haze under it as an underline. */
@@ -316,13 +348,53 @@ function typeHint(idle: number): void {
   hint.textContent = hintText.slice(0, Math.min(chars, hintText.length));
 }
 
+// ── The counter ────────────────────────────────────────────────────────────
+// A 90s hit counter, except it counts your excavation rather than visitors,
+// so it needs no backend and tracks nobody.
+
+const ODO_DIGITS = 7;
+let odoReels: HTMLElement[] = [];
+let uncovered = 0;
+
+function buildOdometer(): void {
+  pct.textContent = '';
+  odoReels = [];
+  const box = document.createElement('span');
+  box.className = 'odo';
+  for (let i = 0; i < ODO_DIGITS; i++) {
+    const digit = document.createElement('span');
+    digit.className = 'odo-digit';
+    const reel = document.createElement('span');
+    reel.className = 'odo-reel';
+    for (let n = 0; n <= 9; n++) {
+      const cell = document.createElement('span');
+      cell.textContent = String(n);
+      reel.append(cell);
+    }
+    digit.append(reel);
+    box.append(digit);
+    odoReels.push(reel);
+  }
+  const label = document.createElement('span');
+  label.textContent = 'cells';
+  pct.append(box, label);
+  setOdometer(0);
+}
+
+function setOdometer(value: number): void {
+  const text = String(Math.min(value, 10 ** ODO_DIGITS - 1)).padStart(ODO_DIGITS, '0');
+  for (let i = 0; i < ODO_DIGITS; i++) {
+    odoReels[i].style.transform = `translateY(${-Number(text[i])}em)`;
+  }
+}
+
 function updatePct(): void {
   let seen = 0;
   for (let i = 0; i < field.ink.length; i++) {
     if (plane.chars[i] !== 0 && field.ink[i] > 0.35) seen++;
   }
-  const value = plane.textCells ? Math.round((seen / plane.textCells) * 100) : 0;
-  pct.textContent = `${value}% uncovered`;
+  uncovered = seen;
+  setOdometer(seen);
 }
 
 // ── Input ──────────────────────────────────────────────────────────────────
@@ -407,6 +479,7 @@ document.getElementById('plain-toggle')!.addEventListener('click', () => toggleP
 
 let resizeAt = 0;
 addEventListener('resize', () => {
+  chromeBox = null;
   clearTimeout(resizeAt);
   resizeAt = setTimeout(build, 150) as unknown as number;
 });
@@ -419,6 +492,7 @@ async function start(): Promise<void> {
   } catch {
     // Fallback monospace still renders a coherent grid.
   }
+  buildOdometer();
   build();
   document.body.classList.add('ready');
   if (coarse.matches) hintText = 'drag to reveal';
