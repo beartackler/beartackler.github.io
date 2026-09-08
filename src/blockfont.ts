@@ -67,6 +67,13 @@ export function blockWidth(text: string): number {
 /**
  * Expand `text` into 5 strings of the same length, ready to be stamped into
  * the grid one character per cell. Returns rows of '#' and ' '.
+ *
+ * Stacked lines are aligned flush on column 0, and should stay that way. A
+ * word beginning `T` has ink at column 0 only on its crossbar row, so under a
+ * word beginning `M` it can look indented — but hanging the crossbar out to
+ * align the stem instead is a 2-of-5-cell overhang, and that reads much more
+ * plainly as a mistake. Overhang correction is a smooth-type refinement; on a
+ * face whose pixels are grid cells, the metric box *is* the alignment.
  */
 export function blockRows(text: string): string[] {
   const rows = Array.from({ length: BLOCK_ROWS }, () => '');
@@ -78,29 +85,6 @@ export function blockRows(text: string): string[] {
     }
   }
   return rows.map((r) => r.slice(0, Math.max(0, r.length - TRACKING)));
-}
-
-/**
- * How far a word's *optical* left edge sits inside its metric one.
- *
- * A word beginning `T` has ink at column 0 on its crossbar row and two cells
- * in on the four rows below it, so stacking it flush-left under a word
- * beginning `M` — which has ink at column 0 on every row — makes it look
- * indented, because the eye reads the mass rather than the metric edge. This
- * returns the inset most of the rows share, which is the column stacked lines
- * should be aligned on. Hanging the crossbar out past it is the correction a
- * typesetter would make by hand.
- */
-export function opticalLead(rows: string[]): number {
-  const counts = new Map<number, number>();
-  for (const r of rows) {
-    if (r.trim() === '') continue;
-    const n = r.length - r.trimStart().length;
-    counts.set(n, (counts.get(n) ?? 0) + 1);
-  }
-  if (counts.size === 0) return 0;
-  // Most common inset wins; ties go to the smaller one.
-  return [...counts].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
 }
 
 export function hasBlockGlyphs(text: string): boolean {

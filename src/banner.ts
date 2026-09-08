@@ -23,7 +23,7 @@
 
 import './style.css';
 import { Atlas, Sheet, type Palette } from './atlas';
-import { blockRows, opticalLead } from './blockfont';
+import { blockRows } from './blockfont';
 import { Clearance, markExtent, MarkField, SPREAD } from './mark';
 import { PERSON } from './resume';
 
@@ -55,11 +55,7 @@ const parts = PERSON.name.split(' ');
 const art = parts.map((p) => blockRows(p));
 const nameRows = art.length * 5 + (art.length - 1);
 
-// Stacked lines align on their optical edges, so the column has to leave room
-// for whatever hangs to the left of it.
-const leads = art.map(opticalLead);
-const hang = Math.max(...leads);
-const textCol = Math.ceil(PHOTO_RIGHT / CELL_W) + 1 + hang;
+const textCol = Math.ceil(PHOTO_RIGHT / CELL_W) + 1;
 const contactPx = 28;
 const CONTACT = ['beartackler.github.io', PERSON.email];
 const blockPx = nameRows * CELL_H;
@@ -68,7 +64,7 @@ const stackTop = Math.round((H - (blockPx + contactBlock)) / 2);
 const nameRow = Math.round(stackTop / CELL_H);
 
 art.forEach((lines, n) => {
-  lines.forEach((line, i) => put0(line, textCol - leads[n], nameRow + n * 6 + i));
+  lines.forEach((line, i) => put0(line, textCol, nameRow + n * 6 + i));
 });
 function put0(line: string, c: number, r: number): void {
   [...line].forEach((ch, i) => put(c + i, r, ch.charCodeAt(0), Sheet.Display));
