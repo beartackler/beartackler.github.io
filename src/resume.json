@@ -1,0 +1,153 @@
+{
+  "person": {
+    "name": "TIMUR MONASYPOV",
+    "properName": "Timur Monasypov",
+    "tagline": "product & ai safety · boston, ma",
+    "email": "monasypov.t@northeastern.edu",
+    "phone": "857 250 8006",
+    "phoneHref": "+18572508006",
+    "github": "github.com/beartackler",
+    "githubHref": "https://github.com/beartackler",
+    "linkedin": "linkedin.com/in/timurmonasypov",
+    "linkedinHref": "https://linkedin.com/in/timurmonasypov",
+    "resume": "timur-monasypov-resume.pdf",
+    "summary": "Product and AI safety. Research assistant at Meronym Labs red-teaming LLMs; previously forward deployed PM at Pegbo. Northeastern University, Boston."
+  },
+  "now": [
+    {
+      "title": "Research Assistant, AI Safety",
+      "org": "Meronym Labs, Northeastern",
+      "orgFull": "Meronym Labs, Northeastern University",
+      "where": "Boston, MA",
+      "when": "Sept 2026 →",
+      "whenFull": "Sept. 2026 – Present",
+      "note": "red-teaming LLMs in mental-health contexts",
+      "detail": [
+        "Red-team proprietary LLMs for safety failures in mental-health contexts, from prompt design to harm coding",
+        "Measure and mitigate accent- and dialect-driven error gaps in ambient clinical scribes for LEP patients"
+      ]
+    }
+  ],
+  "before": [
+    {
+      "title": "Assoc. Forward Deployed PM",
+      "titleFull": "Associate Forward Deployed Product Manager",
+      "org": "Pegbo",
+      "orgFull": "Pegbo",
+      "where": "Remote, US",
+      "when": "2026",
+      "whenFull": "Mar. 2026 – Aug. 2026",
+      "note": "system-of-record → system-of-action; −40% triage",
+      "detail": [
+        "Designed discovery-to-award journeys and AI-native positioning on deployed FastAPI/Postgres backends",
+        "System-of-record → system-of-action: Voice/AgentMail/RCS agents, sequence engine, evals → HITL; −40% triage",
+        "Turned fuzzy asks into scoped, prioritized work for an agent-native 2–5 engineer pod across three product surfaces",
+        "Originated a 0-to-1 partnership with Modulate, whose voice-understanding tech powers the calling agent",
+        "Worked client and design-partner calls with the co-founders, converting use cases into shipped features"
+      ]
+    },
+    {
+      "title": "Customer Success Manager",
+      "titleFull": "Customer Success Manager Intern",
+      "org": "Mindbox",
+      "orgFull": "Mindbox",
+      "where": "Limassol, Cyprus",
+      "when": "2025",
+      "whenFull": "Aug. 2025 – Dec. 2025",
+      "note": "launches & campaigns on a CDP/martech platform",
+      "detail": [
+        "Drove launches and campaigns for mid-market clients on a CDP/martech platform",
+        "Translated client needs into technical integration specs for engineering",
+        "Owned day-to-day stakeholder comms, tracking client status, objectives, and metrics"
+      ]
+    },
+    {
+      "title": "Alpha Tester",
+      "titleFull": "Alpha Tester",
+      "org": "New York Browser Co.",
+      "orgFull": "New York Browser Company",
+      "where": "New York, NY",
+      "when": "2025",
+      "whenFull": "Apr. 2025 – July 2025",
+      "note": "prompt-injection testing on an AI browser agent",
+      "detail": [
+        "Stress-tested an AI browser agent for prompt-injection and edge-case failures",
+        "Verified the agent stayed predictable without disrupting standard browsing",
+        "Contributed to PRD/bug report creation and acceptance testing for AI-agent features"
+      ]
+    },
+    {
+      "title": "Product Management Intern",
+      "titleFull": "Product Management Intern",
+      "org": "Newo.ai",
+      "orgFull": "Newo.ai",
+      "where": "San Francisco, CA",
+      "when": "2024",
+      "whenFull": "May 2024 – Sept. 2024",
+      "note": "sales-engineered SMBs on an AI-agent platform",
+      "detail": [
+        "Sales-engineered SMB prospects on an AI-agent platform: scoped needs and tailored POC workflows",
+        "Crafted the customer onboarding experience for a partner-focused GTM strategy",
+        "Built competitor, partnership, and metrics dashboards to inform GTM/Product"
+      ]
+    },
+    {
+      "title": "Product Management Intern",
+      "titleFull": "Product Management Intern",
+      "org": "GoMobile.ai",
+      "orgFull": "GoMobile.ai",
+      "where": "Dubai, UAE",
+      "when": "2024",
+      "whenFull": "Jan. 2024 – May 2024",
+      "note": "Figma/Drive API integration; ~200 hrs/mo saved",
+      "detail": [
+        "Streamlined collaboration by implementing a Figma/Google Drive API integration, saving up to 200 hrs/month",
+        "Contextually translated a geospatial database of over 2.3 million symbols with an LLM-powered translation agent",
+        "Conducted CustDev in order to optimize internally-facing tools; oversaw development sprints"
+      ]
+    },
+    {
+      "title": "Associate Consultant",
+      "titleFull": "Associate Consultant",
+      "org": "Elevate Consulting",
+      "orgFull": "Elevate Consulting, Northeastern University",
+      "where": "Boston, MA",
+      "when": "2023",
+      "whenFull": "May 2023 – Jan. 2024",
+      "note": "blockchain for B2B trade finance",
+      "detail": [
+        "Researched blockchain solutions for client's B2B trade finance business; proposed integration with Centrifuge.io",
+        "Facilitated client meetings to sync on scope, granularity and deliverables"
+      ]
+    }
+  ],
+  "edu": [
+    {
+      "school": "Northeastern University",
+      "award": "BS Computer Science & Business",
+      "awardFull": "BS, Computer Science & Business Administration",
+      "extra": "Concentration in Fintech",
+      "when": "2021–2025",
+      "whenFull": "Sept. 2021 – July 2025"
+    },
+    {
+      "school": "Northeastern University",
+      "award": "Grad Certificate, Product Mgmt",
+      "awardFull": "Graduate Certificate in Product Management",
+      "when": "2026–2027",
+      "whenFull": "Expected: Sept. 2026 – April 2027"
+    }
+  ],
+  "makes": [
+    "python · typescript · sql",
+    "agents · evals · rag · voice",
+    "model routing · local inference",
+    "claude code · figma · linear · posthog",
+    "english · русский · un peu de français"
+  ],
+  "skillsFull": [
+    ["AI", "Agent-native development and frameworks, evals, production voice agents, RAG, model routing, local inference"],
+    ["Tools", "Claude Code, jcode, Figma, Excalidraw, Linear, PostHog, Postman, Excel"],
+    ["Languages", "Python, TypeScript, SQL, Russian, and some French"]
+  ]
+}

@@ -1,0 +1,355 @@
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+
+:root {
+  /* Darkroom under a safelight: the surface stays near-neutral and the amber
+     does all of the mood work. */
+  --bg: oklch(0.148 0.006 45);
+  --display: oklch(0.97 0.022 62);
+  --ink: oklch(0.94 0.014 60);
+  --ink-dim: oklch(0.78 0.014 58);
+  --muted: oklch(0.62 0.03 50);
+  --glow: oklch(0.685 0.172 47.7);
+  --glow-hot: oklch(0.82 0.175 54);
+
+  --grid: 'Departure Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --doc: ui-serif, 'Iowan Old Style', Charter, Palatino, Georgia, serif;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  /* Without this, mobile Chrome inflates the chrome text to ~3x and it
+     collides with the grid. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--grid);
+  font-size: 13px;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Nothing paints until the font is measured and the first plane is composed. */
+body:not(.ready) #boot,
+body:not(.ready) .chrome {
+  opacity: 0;
+}
+
+#field {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 1;
+}
+
+/* Real anchors sit over the link cells: proper hit targets, cmd-click,
+   right-click-copy and hover states, none of which a canvas can fake. */
+#hotspots {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#hotspots a {
+  position: absolute;
+  display: block;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#spacer {
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── The one thing on a blank page ─────────────────────────────────────── */
+
+#boot {
+  position: fixed;
+  z-index: 3;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: var(--glow);
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 0.6s var(--ease);
+}
+
+#boot span {
+  animation: blink 1.15s steps(1, end) infinite;
+}
+
+#boot.gone {
+  opacity: 0;
+}
+
+@keyframes blink {
+  0%, 45% { opacity: 1; }
+  46%, 100% { opacity: 0.08; }
+}
+
+#hint {
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  top: calc(50% + 3.5rem);
+  translate: -50% 0;
+  margin: 0;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s var(--ease);
+}
+
+#hint.on {
+  opacity: 1;
+}
+
+/* ── Chrome ────────────────────────────────────────────────────────────── */
+
+/* Full-width so the scrim can keep the controls legible over a scrolling
+   plane; the controls themselves stay tucked to the right. */
+.chrome {
+  position: fixed;
+  z-index: 4;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: clamp(0.75rem, 3vw, 1.25rem);
+  padding: 2.5rem max(1.5rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) 1.5rem;
+  color: var(--muted);
+  background: linear-gradient(to bottom, transparent, var(--bg) 45%);
+  transition: opacity 0.6s var(--ease);
+}
+
+@media (max-width: 560px) {
+  .chrome {
+    font-size: 0.85em;
+    gap: 0.9rem;
+  }
+}
+
+#pct {
+  font-variant-numeric: tabular-nums;
+}
+
+.chrome button {
+  appearance: none;
+  border: 0;
+  padding: 0.35rem 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 0.25s var(--ease);
+}
+
+.chrome button::before {
+  content: '[ ';
+}
+
+.chrome button::after {
+  content: ' ]';
+}
+
+.chrome button:hover,
+.chrome button:focus-visible {
+  color: var(--glow-hot);
+}
+
+.chrome button:focus-visible {
+  outline: 1px solid var(--glow);
+  outline-offset: 4px;
+}
+
+/* Keyboard affordances are noise on a touchscreen. */
+/* Bracket the key, not the word: "[ space ] reveal" parses at a glance. */
+@media (pointer: fine) {
+  .chrome button#reveal-toggle::before { content: '[ space ] '; }
+  .chrome button#plain-toggle::before { content: '[ p ] '; }
+  .chrome button::after { content: ''; }
+}
+
+/* ── The document ──────────────────────────────────────────────────────── */
+
+/* Present for screen readers and crawlers at all times; shown on demand. */
+#doc {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+body.plain {
+  cursor: auto;
+  overflow-y: auto;
+}
+
+body.plain #field,
+body.plain #hotspots,
+body.plain #spacer,
+body.plain #boot,
+body.plain #hint,
+/* Neither of these means anything once the grid is gone. */
+body.plain #pct,
+body.plain #reveal-toggle {
+  display: none;
+}
+
+body.plain #doc {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: clamp(3rem, 9vw, 7rem) 1.5rem 9rem;
+  font-family: var(--doc);
+  font-size: clamp(1rem, 0.95rem + 0.2vw, 1.075rem);
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+#doc:focus-visible {
+  outline: none;
+}
+
+#doc h1 {
+  margin: 0 0 0.75rem;
+  font-family: var(--grid);
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--display);
+  text-wrap: balance;
+}
+
+#doc h2 {
+  margin: 3.25rem 0 0.5rem;
+  font-family: var(--grid);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  color: var(--glow);
+}
+
+#doc h3 {
+  margin: 1.85rem 0 0.2rem;
+  font-size: 1.05em;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+#doc .meta {
+  margin: 0;
+  text-wrap: pretty;
+  font-family: var(--grid);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+#doc header .meta {
+  margin-bottom: 0.5rem;
+  line-height: 2;
+}
+
+#doc ul {
+  margin: 0.7rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-dim);
+}
+
+#doc li {
+  margin: 0.4rem 0;
+}
+
+#doc li::marker {
+  color: var(--glow);
+}
+
+#doc dl {
+  margin: 1rem 0 0;
+}
+
+#doc dt {
+  font-family: var(--grid);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--glow);
+}
+
+#doc dd {
+  margin: 0.15rem 0 1.1rem;
+  color: var(--ink-dim);
+}
+
+#doc a {
+  color: inherit;
+  text-decoration-color: var(--glow);
+  text-underline-offset: 0.22em;
+}
+
+#doc a:hover {
+  color: var(--glow-hot);
+}
+
+/* ── Accommodations ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  #boot span {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  #field, #hotspots, #spacer, #boot, #hint, .chrome { display: none !important; }
+  html, body { background: #fff; color: #111; }
+  #doc {
+    position: static; width: auto; height: auto; overflow: visible;
+    clip-path: none; white-space: normal;
+    max-width: none; padding: 0; font-family: var(--doc); font-size: 10.5pt; line-height: 1.4;
+  }
+  #doc h1 { color: #111; font-size: 20pt; }
+  #doc h2 { color: #111; margin-top: 1.4rem; }
+  #doc h3 { margin-top: 0.9rem; }
+  #doc .meta, #doc dt { color: #444; }
+  #doc ul, #doc dd { color: #222; }
+  #doc li::marker { color: #888; }
+  #doc article { break-inside: avoid; }
+}

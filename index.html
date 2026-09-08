@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0d0a09" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Timur Monasypov</title>
+    <!--HEAD-->
+    <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <canvas id="field" aria-hidden="true"></canvas>
+    <div id="spacer" aria-hidden="true"></div>
+    <div id="hotspots" aria-hidden="true"></div>
+
+    <p id="boot" aria-hidden="true"><span>&#9608;</span></p>
+    <p id="hint" aria-hidden="true">move your cursor</p>
+
+    <div class="chrome">
+      <span id="pct">0% uncovered</span>
+      <button id="reveal-toggle" type="button">reveal</button>
+      <button id="plain-toggle" type="button">plain</button>
+    </div>
+
+    <!--DOC-->
+
+    <noscript>
+      <style>
+        #field, #hotspots, #spacer, #boot, #hint, .chrome { display: none !important; }
+        #doc { position: static !important; clip-path: none !important; width: auto !important; height: auto !important; }
+      </style>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
