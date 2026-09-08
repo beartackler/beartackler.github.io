@@ -118,13 +118,23 @@ body:not(.ready) .chrome {
   margin: 0;
   color: var(--muted);
   letter-spacing: 0.12em;
+  min-height: 1em;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.9s var(--ease);
+  transition: opacity 0.5s var(--ease);
 }
 
 #hint.on {
   opacity: 1;
+}
+
+/* The caret hands off from the centre of the screen to the end of the typed
+   line, so there is only ever one cursor on the page. */
+#hint.on::after {
+  content: '\2588';
+  margin-left: 0.15em;
+  color: var(--glow);
+  animation: blink 1.15s steps(1, end) infinite;
 }
 
 /* ── Chrome ────────────────────────────────────────────────────────────── */
@@ -155,12 +165,21 @@ body:not(.ready) .chrome {
   }
 }
 
+/* Three controls plus a readout will not fit a phone; the readout goes. */
+@media (max-width: 460px) {
+  #pct {
+    display: none;
+  }
+}
+
 #pct {
   font-variant-numeric: tabular-nums;
 }
 
-.chrome button {
+.chrome button,
+.chrome a {
   appearance: none;
+  text-decoration: none;
   border: 0;
   padding: 0.35rem 0;
   background: none;
@@ -171,20 +190,25 @@ body:not(.ready) .chrome {
   transition: color 0.25s var(--ease);
 }
 
-.chrome button::before {
+.chrome button::before,
+.chrome a::before {
   content: '[ ';
 }
 
-.chrome button::after {
+.chrome button::after,
+.chrome a::after {
   content: ' ]';
 }
 
 .chrome button:hover,
-.chrome button:focus-visible {
+.chrome a:hover,
+.chrome button:focus-visible,
+.chrome a:focus-visible {
   color: var(--glow-hot);
 }
 
-.chrome button:focus-visible {
+.chrome button:focus-visible,
+.chrome a:focus-visible {
   outline: 1px solid var(--glow);
   outline-offset: 4px;
 }

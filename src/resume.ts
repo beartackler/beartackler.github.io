@@ -17,7 +17,6 @@ export type Role = {
   where: string;
   when: string;
   whenFull: string;
-  note: string;
   detail: string[];
 };
 
@@ -34,4 +33,7 @@ export const PERSON = data.person;
 export const NOW = data.now as Role[];
 export const BEFORE = data.before as Role[];
 export const EDU = data.edu as Study[];
-export const MAKES = data.makes as string[];
+/** `[label, lines]` — a definition block, not a flat list. */
+export type Craft = [string, string[]];
+
+export const MAKES = data.makes as Craft[];

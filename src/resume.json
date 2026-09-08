@@ -2,7 +2,7 @@
   "person": {
     "name": "TIMUR MONASYPOV",
     "properName": "Timur Monasypov",
-    "tagline": "product & ai safety · boston, ma",
+    "tagline": "product & ai · boston, ma",
     "email": "monasypov.t@northeastern.edu",
     "phone": "857 250 8006",
     "phoneHref": "+18572508006",
@@ -21,7 +21,6 @@
       "where": "Boston, MA",
       "when": "Sept 2026 →",
       "whenFull": "Sept. 2026 – Present",
-      "note": "red-teaming LLMs in mental-health contexts",
       "detail": [
         "Red-team proprietary LLMs for safety failures in mental-health contexts, from prompt design to harm coding",
         "Measure and mitigate accent- and dialect-driven error gaps in ambient clinical scribes for LEP patients"
@@ -37,7 +36,6 @@
       "where": "Remote, US",
       "when": "2026",
       "whenFull": "Mar. 2026 – Aug. 2026",
-      "note": "system-of-record → system-of-action; −40% triage",
       "detail": [
         "Designed discovery-to-award journeys and AI-native positioning on deployed FastAPI/Postgres backends",
         "System-of-record → system-of-action: Voice/AgentMail/RCS agents, sequence engine, evals → HITL; −40% triage",
@@ -54,7 +52,6 @@
       "where": "Limassol, Cyprus",
       "when": "2025",
       "whenFull": "Aug. 2025 – Dec. 2025",
-      "note": "launches & campaigns on a CDP/martech platform",
       "detail": [
         "Drove launches and campaigns for mid-market clients on a CDP/martech platform",
         "Translated client needs into technical integration specs for engineering",
@@ -69,7 +66,6 @@
       "where": "New York, NY",
       "when": "2025",
       "whenFull": "Apr. 2025 – July 2025",
-      "note": "prompt-injection testing on an AI browser agent",
       "detail": [
         "Stress-tested an AI browser agent for prompt-injection and edge-case failures",
         "Verified the agent stayed predictable without disrupting standard browsing",
@@ -84,7 +80,6 @@
       "where": "San Francisco, CA",
       "when": "2024",
       "whenFull": "May 2024 – Sept. 2024",
-      "note": "sales-engineered SMBs on an AI-agent platform",
       "detail": [
         "Sales-engineered SMB prospects on an AI-agent platform: scoped needs and tailored POC workflows",
         "Crafted the customer onboarding experience for a partner-focused GTM strategy",
@@ -99,7 +94,6 @@
       "where": "Dubai, UAE",
       "when": "2024",
       "whenFull": "Jan. 2024 – May 2024",
-      "note": "Figma/Drive API integration; ~200 hrs/mo saved",
       "detail": [
         "Streamlined collaboration by implementing a Figma/Google Drive API integration, saving up to 200 hrs/month",
         "Contextually translated a geospatial database of over 2.3 million symbols with an LLM-powered translation agent",
@@ -114,7 +108,6 @@
       "where": "Boston, MA",
       "when": "2023",
       "whenFull": "May 2023 – Jan. 2024",
-      "note": "blockchain for B2B trade finance",
       "detail": [
         "Researched blockchain solutions for client's B2B trade finance business; proposed integration with Centrifuge.io",
         "Facilitated client meetings to sync on scope, granularity and deliverables"
@@ -139,15 +132,44 @@
     }
   ],
   "makes": [
-    "python · typescript · sql",
-    "agents · evals · rag · voice",
-    "model routing · local inference",
-    "claude code · figma · linear · posthog",
-    "english · русский · un peu de français"
+    [
+      "ai",
+      [
+        "agents · evals · rag · voice",
+        "model routing · local inference"
+      ]
+    ],
+    [
+      "code",
+      [
+        "python · typescript · sql"
+      ]
+    ],
+    [
+      "tools",
+      [
+        "claude code · figma · linear · posthog"
+      ]
+    ],
+    [
+      "speaks",
+      [
+        "english · русский · un peu de français"
+      ]
+    ]
   ],
   "skillsFull": [
-    ["AI", "Agent-native development and frameworks, evals, production voice agents, RAG, model routing, local inference"],
-    ["Tools", "Claude Code, jcode, Figma, Excalidraw, Linear, PostHog, Postman, Excel"],
-    ["Languages", "Python, TypeScript, SQL, Russian, and some French"]
+    [
+      "AI",
+      "Agent-native development and frameworks, evals, production voice agents, RAG, model routing, local inference"
+    ],
+    [
+      "Tools",
+      "Claude Code, jcode, Figma, Excalidraw, Linear, PostHog, Postman, Excel"
+    ],
+    [
+      "Languages",
+      "Python, TypeScript, SQL, Russian, and some French"
+    ]
   ]
 }

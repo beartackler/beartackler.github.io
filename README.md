@@ -2,11 +2,12 @@
 
 A resume you have to uncover.
 
-The page opens black with a single blinking cursor. Moving the pointer drags a
-lantern across a monospace character grid: the fringe of the light is halftone
-ASCII, the core resolves into readable type. Dwell somewhere and it burns in
-permanently; sweep past and it fades in a few seconds. A readout in the corner
-tracks how much you've uncovered.
+The page opens black with a single blinking cursor breathing rings of ASCII
+haze into the dark — the resume shows up only as the gaps those rings leave.
+Moving the pointer drags a lantern across the grid: halftone at the fringe,
+readable type at the core, resolving a word at a time. Dwell and it burns in
+permanently; sweep past and it fades. Leave it alone and the page starts
+reading itself. A readout in the corner tracks how much you've uncovered.
 
 Nobody is trapped in the game. `space` lights the whole thing, `p` swaps to a
 properly typeset document, and the full resume is in the DOM at all times for
@@ -24,7 +25,10 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.
 - **`src/field.ts`** — the lantern. `light` decays on a half-life, `ink` is what
-  dwelling burned in, `lock` is the brief scramble as a cell resolves.
+  dwelling burned in. Per-cell light is rolled up to per-*word* light, so type
+  snaps into focus whole rather than shearing through the middle of the beam.
+  `ring()` drives the cold open and skips text cells outright, which makes
+  spoiling a word structurally impossible rather than a matter of tuning.
 - **`src/atlas.ts`** — pre-renders every glyph once per colour. The density ramp is
   *measured* from the rendered glyphs rather than hardcoded, so it stays a true
   light-to-heavy scale. Punctuation only: letters in the fringe read as garbled
@@ -32,7 +36,10 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 - **`src/render.ts`** — buckets cells by (sheet, quantised alpha) so a frame costs a
   few dozen context state changes instead of several thousand `fillText` calls.
 
-Zero runtime dependencies. ~20 kB of JS, 8.5 kB gzipped.
+`public/og.png` is a share card rendered from the page itself, so a link
+preview shows the real thing.
+
+Zero runtime dependencies. ~22 kB of JS, 9.3 kB gzipped.
 
 ## Accessibility
 

@@ -16,19 +16,29 @@ const RESOLVE_LO = 0.28;
 export class Field {
   light: Float32Array;
   ink: Float32Array;
-  lock: Float32Array;
   seed: Float32Array;
+  /** Brightest cell in each word, including burned-in ink. */
+  runLight: Float32Array;
+  /** Brightest *live* cell in each word; burned-in words read dimmer. */
+  runLive: Float32Array;
+  /** Countdown of the decode scramble, per word. */
+  runLock: Float32Array;
+  private runPrev: Float32Array;
 
   constructor(
     public cols: number,
     public rows: number,
+    runCount: number,
   ) {
     const n = cols * rows;
     this.light = new Float32Array(n);
     this.ink = new Float32Array(n);
-    this.lock = new Float32Array(n);
     this.seed = new Float32Array(n);
     for (let i = 0; i < n; i++) this.seed[i] = Math.random();
+    this.runLight = new Float32Array(runCount);
+    this.runLive = new Float32Array(runCount);
+    this.runLock = new Float32Array(runCount);
+    this.runPrev = new Float32Array(runCount);
   }
 
   /**
@@ -58,20 +68,41 @@ export class Field {
     }
   }
 
-  step(dt: number, hasChar: (i: number) => boolean): void {
-    const keep = Math.pow(0.5, dt / HALF_LIFE);
-    const { light, ink, lock } = this;
+  step(dt: number, hasChar: (i: number) => boolean, burn: boolean, halfLife = HALF_LIFE): void {
+    const keep = Math.pow(0.5, dt / halfLife);
+    const { light, ink } = this;
     for (let i = 0; i < light.length; i++) {
-      const prev = light[i];
-      const next = prev * keep;
+      const next = light[i] * keep;
       light[i] = next;
-
-      if (prev < RESOLVE_LO && next >= RESOLVE_LO) lock[i] = LOCK_TIME;
-      else if (lock[i] > 0) lock[i] = Math.max(0, lock[i] - dt);
-
-      if (next > 0.25 && ink[i] < INK_MAX && hasChar(i)) {
+      if (burn && next > 0.25 && ink[i] < INK_MAX && hasChar(i)) {
         ink[i] = Math.min(INK_MAX, ink[i] + next * next * dt * BURN_RATE);
       }
+    }
+  }
+
+  /**
+   * Rolls per-cell light up to per-word light. A word resolves on its
+   * brightest cell, so touching any part of it brings the whole word into
+   * focus rather than shearing it through the middle of the light.
+   */
+  resolveRuns(runId: Int32Array, dt: number): void {
+    const { light, ink, runLight, runLive, runLock, runPrev } = this;
+    runLight.fill(0);
+    runLive.fill(0);
+
+    for (let i = 0; i < runId.length; i++) {
+      const r = runId[i];
+      if (r < 0) continue;
+      const live = light[i];
+      if (live > runLive[r]) runLive[r] = live;
+      const any = live > ink[i] ? live : ink[i];
+      if (any > runLight[r]) runLight[r] = any;
+    }
+
+    for (let r = 0; r < runLight.length; r++) {
+      if (runPrev[r] < RESOLVE_LO && runLight[r] >= RESOLVE_LO) runLock[r] = LOCK_TIME;
+      else if (runLock[r] > 0) runLock[r] = Math.max(0, runLock[r] - dt);
+      runPrev[r] = runLight[r];
     }
   }
 
@@ -80,6 +111,40 @@ export class Field {
    * the resume under full-screen haze, which is the opposite of what someone
    * pressing "reveal" is asking for.
    */
+  /**
+   * An expanding annulus. Used by the cold open to breathe rings of haze out
+   * of the resting cursor, which teaches the mechanic without showing a word.
+   */
+  ring(
+    colF: number,
+    rowF: number,
+    radius: number,
+    thickness: number,
+    aspect: number,
+    strength: number,
+    /** When given, only empty cells are lit — the ring can never spoil a word. */
+    emptyOnly?: Uint16Array,
+  ): void {
+    const reach = radius + thickness;
+    const c0 = Math.max(0, Math.floor(colF - reach));
+    const c1 = Math.min(this.cols - 1, Math.ceil(colF + reach));
+    const r0 = Math.max(0, Math.floor(rowF - reach / aspect));
+    const r1 = Math.min(this.rows - 1, Math.ceil(rowF + reach / aspect));
+
+    for (let r = r0; r <= r1; r++) {
+      const dy = (r - rowF) * aspect;
+      for (let c = c0; c <= c1; c++) {
+        const dx = c - colF;
+        const t = 1 - Math.abs(Math.sqrt(dx * dx + dy * dy) - radius) / thickness;
+        if (t <= 0) continue;
+        const i = r * this.cols + c;
+        if (emptyOnly && emptyOnly[i] !== 0) continue;
+        const v = t * t * (3 - 2 * t) * strength;
+        if (v > this.light[i]) this.light[i] = v;
+      }
+    }
+  }
+
   revealAll(hasChar: (i: number) => boolean): void {
     for (let i = 0; i < this.light.length; i++) {
       if (!hasChar(i)) continue;
@@ -91,7 +156,8 @@ export class Field {
   clear(): void {
     this.light.fill(0);
     this.ink.fill(0);
-    this.lock.fill(0);
+    this.runLock.fill(0);
+    this.runPrev.fill(0);
   }
 }
 

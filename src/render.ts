@@ -5,8 +5,8 @@
  */
 
 import { Atlas, Sheet } from './atlas';
-import { Field, INK_MAX } from './field';
-import type { Plane } from './layout';
+import { Field } from './field';
+import type { LinkRegion, Plane } from './layout';
 
 const ALPHA_STEPS = 12;
 const FLOOR = 0.04; // below this a cell is simply dark
@@ -27,6 +27,8 @@ export class Renderer {
   private codes: number[][] = [];
   /** Reused per frame so the loop allocates nothing. */
   private frame = 0;
+  /** The link under the pointer, drawn hot so hovering reads as a hover. */
+  hot: LinkRegion | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -70,6 +72,9 @@ export class Renderer {
     );
     const ramp = atlas.ramp;
     const scramble = atlas.scramble;
+    const hotRow = this.hot ? this.hot.row : -1;
+    const hotCol = this.hot ? this.hot.col : 0;
+    const hotEnd = this.hot ? this.hot.col + this.hot.len : 0;
 
     for (let r = firstRow; r <= lastRow; r++) {
       for (let c = 0; c < plane.cols; c++) {
@@ -79,7 +84,9 @@ export class Renderer {
 
         const code = plane.chars[i];
         const isText = code !== 0;
-        const resolve = isText ? smoothstep(0.28, 0.55, l) : 0;
+        const run = isText ? plane.runId[i] : -1;
+        // Words resolve as words, on their brightest cell.
+        const resolve = run >= 0 ? smoothstep(0.28, 0.55, field.runLight[run]) : 0;
 
         // Halftone haze — the ASCII-art layer.
         const hazeA = l * (1 - resolve) * (isText ? HAZE_TEXT : HAZE_EMPTY);
@@ -92,13 +99,18 @@ export class Renderer {
         if (!isText || resolve <= 0.02) continue;
 
         // Resolved type, or the brief scramble on the way in.
-        if (field.lock[i] > 0) {
-          const pick = (this.frame + i) % scramble.length;
+        if (field.runLock[run] > 0) {
+          // Offset by the cell's own seed, or neighbours march through the
+          // alphabet in lockstep instead of looking like noise.
+          const pick =
+            (((this.frame / 3) | 0) + ((field.seed[i] * scramble.length) | 0)) % scramble.length;
           this.push(Sheet.GlowHot, resolve, i, scramble[pick]);
+        } else if (hotRow === r && c >= hotCol && c < hotEnd) {
+          this.push(Sheet.GlowHot, 1, i, code);
         } else {
-          const sheet = plane.tone[i] as 0 | 1 | 2 | 3;
-          const settled = field.light[i] < 0.08 ? Math.min(1, field.ink[i] / INK_MAX) : 1;
-          this.push(sheet, resolve * (0.55 + 0.45 * settled), i, code);
+          // Live words burn brighter than ones already developed.
+          const settled = 0.72 + 0.28 * Math.min(1, field.runLive[run] / 0.6);
+          this.push(plane.tone[i], resolve * settled, i, code);
         }
       }
     }

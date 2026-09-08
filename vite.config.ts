@@ -63,6 +63,12 @@ function resumeDocument(): Plugin {
     <meta property="og:title" content="${esc(p.properName)}" />
     <meta property="og:description" content="${esc(p.summary)}" />
     <meta property="og:type" content="profile" />
+    <meta property="og:url" content="https://beartackler.github.io/" />
+    <meta property="og:image" content="https://beartackler.github.io/og.png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
+    <meta property="og:image:alt" content="An ASCII-art resume rendered on a dark character grid." />
+    <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json">${JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Person',
