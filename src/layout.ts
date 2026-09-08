@@ -6,7 +6,7 @@
  * and the stacked narrow layout. Nothing here knows about pixels.
  */
 
-import { BLOCK_ROWS, blockRows, blockWidth } from './blockfont';
+import { BLOCK_ROWS, blockRows, blockWidth, opticalLead } from './blockfont';
 import { BEFORE, EDU, MAKES, NOW, PERSON, type Role } from './resume';
 
 /**
@@ -266,8 +266,16 @@ function paintName(d: Draft, x: number, row: number, avail: number): number {
 
   const parts = whole.split(' ');
   if (parts.every((p) => blockWidth(p) <= avail)) {
+    // Align the stacked lines on their optical edges, not their metric ones.
+    // The column stays where the body text is and a leading `T` hangs its
+    // crossbar out to the left of it, which is the correction a typesetter
+    // would make by hand; shifting the other lines right instead would pull
+    // them off the margin everything below them sits on.
+    const leads = parts.map((p) => opticalLead(blockRows(p)));
     let y = row;
-    for (const p of parts) y = d.block(x, y, p, Tone.Display) + 1;
+    parts.forEach((p, i) => {
+      y = d.block(x - leads[i], y, p, Tone.Display) + 1;
+    });
     return y - 1;
   }
 
