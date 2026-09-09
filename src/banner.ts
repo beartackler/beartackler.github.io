@@ -90,6 +90,7 @@ new MarkField(COLS, ROWS, aspect, new Uint16Array(COLS * ROWS)).evaluate({
   radius,
   thick: 0.8,
   phase: 1,
+  formation: 0,
   clearance: Clearance.None,
   painted: null,
   base: 0.72,

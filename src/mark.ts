@@ -28,9 +28,55 @@ const TAU = Math.PI * 2;
 export const Clearance = { None: 0, Tight: 1, Wide: 2 } as const;
 export type ClearanceValue = (typeof Clearance)[keyof typeof Clearance];
 
-/** Total width of the mark, in columns, for a given ring radius. */
-export function markExtent(radius: number): number {
-  return 2 * radius * (1 + SPREAD);
+/**
+ * Centre spacing of the Audi rings, as a fraction of the radius.
+ *
+ * The four rings and the ikigai diagram are the same four circles — the only
+ * difference is that one arrangement is a diamond and the other is a row. That
+ * is what makes act three's opening move an interpolation rather than a
+ * dissolve: nothing appears or disappears, the centres just walk to new
+ * places, and the two marks are revealed to have been the same object.
+ */
+const ROW_STEP = 1.5;
+
+/**
+ * Ring centres for a given radius and arrangement.
+ *
+ * `formation` runs 0 (ikigai diamond) to 1 (Audi row). The pairing is chosen
+ * so the diamond *unfolds*: the two top rings drop and the two bottom rings
+ * rise, and the row assembles left to right without any ring crossing over
+ * another. Pairing them in ring order instead makes them shuffle through each
+ * other, which reads as a glitch rather than a change of state.
+ */
+export function ringCentres(radius: number, formation: number): [number, number][] {
+  const d = radius * SPREAD;
+  const diamond: [number, number][] = [
+    [-d, -d],
+    [d, -d],
+    [d, d],
+    [-d, d],
+  ];
+  if (formation <= 0) return diamond;
+  const step = radius * ROW_STEP;
+  // Top-left leads, then bottom-left, top-right, bottom-right.
+  const row: [number, number][] = [
+    [-1.5 * step, 0],
+    [0.5 * step, 0],
+    [1.5 * step, 0],
+    [-0.5 * step, 0],
+  ];
+  if (formation >= 1) return row;
+  return diamond.map((c, i) => [
+    c[0] + (row[i][0] - c[0]) * formation,
+    c[1] + (row[i][1] - c[1]) * formation,
+  ]) as [number, number][];
+}
+
+/** Total width of the mark, in columns, for a given radius and arrangement. */
+export function markExtent(radius: number, formation = 0): number {
+  const diamond = 2 * radius * (1 + SPREAD);
+  const row = 2 * radius * (1 + 1.5 * ROW_STEP);
+  return diamond + (row - diamond) * Math.min(1, Math.max(0, formation));
 }
 
 export type MarkPass = {
@@ -44,6 +90,8 @@ export type MarkPass = {
   phase: number;
   /** How much room to leave around the type; see `Clearance`. */
   clearance: ClearanceValue;
+  /** 0 is the ikigai diamond, 1 is the Audi row. See `ringCentres`. */
+  formation: number;
   /**
    * 0 draws a hard-edged ring, 1 feathers it to nothing at the band edge.
    * Feathering is for when the mark is moving: it lets a cell fade in as an
@@ -100,15 +148,11 @@ export class MarkField {
         : clearance === Clearance.Tight
           ? this.blockedTight
           : null;
-    const d = radius * SPREAD;
-    const centres: [number, number][] = [
-      [-d, -d],
-      [d, -d],
-      [d, d],
-      [-d, d],
-    ];
+    const centres = ringCentres(radius, p.formation);
 
-    const reach = radius + d + thick + 1;
+    let spread = 0;
+    for (const [ox, oy] of centres) spread = Math.max(spread, Math.hypot(ox, oy));
+    const reach = radius + spread + thick + 1;
     const c0 = Math.max(0, Math.floor(cx - reach));
     const c1 = Math.min(cols - 1, Math.ceil(cx + reach));
     const r0 = Math.max(0, Math.floor(cy - reach / aspect));

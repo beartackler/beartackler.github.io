@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Scratch output from the local verification harness.
+0*-*.png
+0*-*.pdf

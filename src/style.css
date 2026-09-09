@@ -270,7 +270,7 @@ body.card #caret {
    against the rosette at its own height, so the end of the journey reads as a
    print: branch above, mark centred, the line that explains them both set
    into the space beside it. */
-#coda {
+.coda {
   position: fixed;
   z-index: 3;
   margin: 0;
@@ -285,28 +285,40 @@ body.card #caret {
   transition: opacity 1.4s var(--ease);
 }
 
-#coda.on {
+.coda.on {
   opacity: 1;
 }
 
-#coda blockquote {
+/* Act two's line is ranged right against the mark's left edge; act three's sits
+   to the right of the car, so it ranges the other way. */
+#drive {
+  text-align: left;
+}
+
+body.act3 .odo-digit {
+  color: var(--bloom);
+}
+
+.coda blockquote {
   margin: 0;
 }
 
 /* One clause per line. Letting it reflow breaks it mid-phrase, which reads as
    a text box rather than as a line someone set. */
-#coda blockquote span {
+.coda blockquote span {
   display: block;
   white-space: nowrap;
 }
 
-#coda figcaption {
+.coda figcaption {
   margin-top: 1.15rem;
   color: var(--muted);
   font-size: 0.72rem;
   /* Tracked, but not so far that the credit runs wider than the line it
      credits — both are ranged right, so that inverts the hierarchy. */
   letter-spacing: 0.14em;
+  /* A wrapped credit reads as a second line of the quote. */
+  white-space: nowrap;
 }
 
 /* ── Chrome ────────────────────────────────────────────────────────────── */

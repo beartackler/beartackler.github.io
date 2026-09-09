@@ -56,17 +56,25 @@ function resumeDocument(): Plugin {
           .map(([k, v]: [string, string]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
           .join('')}</dl>
       </section>
-      <footer>
-        <blockquote>${data.coda.lines.map(esc).join(' ')}</blockquote>
-        <p class="meta"><cite>${esc(data.coda.credit)}</cite></p>
+      <footer>${[data.coda, data.drive]
+        .map(
+          (q: { lines: string[]; credit: string }) =>
+            `<blockquote>${q.lines.map(esc).join(' ')}</blockquote>
+        <p class="meta"><cite>${esc(q.credit)}</cite></p>`,
+        )
+        .join('')}
       </footer>
     </main>`;
 
-      const coda = `
-    <figure id="coda" aria-hidden="true">
-      <blockquote>${data.coda.lines.map((l: string) => `<span>${esc(l)}</span>`).join('')}</blockquote>
-      <figcaption>${esc(data.coda.credit)}</figcaption>
+      // One closing line per act, built from the same shape. The canvas copy
+      // is aria-hidden because the footer above already carries both for
+      // anything that reads rather than looks.
+      const quote = (id: string, q: { lines: string[]; credit: string }) => `
+    <figure id="${id}" class="coda" aria-hidden="true">
+      <blockquote>${q.lines.map((l: string) => `<span>${esc(l)}</span>`).join('')}</blockquote>
+      <figcaption>${esc(q.credit)}</figcaption>
     </figure>`;
+      const coda = quote('coda', data.coda) + quote('drive', data.drive);
 
       const head = `
     <meta name="description" content="${esc(p.summary)}" />

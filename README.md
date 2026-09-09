@@ -20,6 +20,12 @@ counter in the corner stays, and switches from words uncovered to blossoms
 open, so there is always something on screen saying how far this runs and that
 it ends. When both have arrived, one line is set against the mark.
 
+Keep scrolling and the four rings unfold: the ikigai diagram and the Audi
+rings are the same four circles, one arranged as a diamond and one as a row, so
+the change is an interpolation of centres rather than a dissolve. The branch
+clears, the rings settle into a badge, and an R8 arrives head-on, holds, turns
+until its exhausts come round, and lights them. A second line is set beside it.
+
 Every part of it is a pure function of scroll position, so scrolling back up
 puts the resume back exactly as it was, mark and all. The journey follows the
 scroll with a spring rather than tracking it directly: a wheel notch is a
@@ -58,6 +64,18 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   scroll position at which it appears, which is what makes the growth
   reversible. Amplitudes are fractions of the band it occupies rather than
   fixed row counts, so it fills the top of any viewport.
+- **`src/r8.ts`** — the car, which is geometry rather than a picture. The brief
+  was that it faces the camera and then turns to show its exhausts, and two
+  drawn frames cross-faded would be a dissolve between two pictures — the thing
+  that reads as fake when the shape underneath is meant to be solid. So it is a
+  lofted body of eighteen cross-sections, four wheels, a z-buffer and Gouraud
+  shading resolved through the same density ramp as the haze. Wheel arches are
+  holes punched in the loft, because a closed tube is wider than its own tyres
+  at every height and no amount of tucking will show a wheel through one. The
+  flames are emitted in screen space along the direction the renderer says each
+  pipe is pointing, so they swing round with the car for free, and they
+  depth-test against it, so while the car is still head-on its own bodywork
+  hides them.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.
 - **`src/field.ts`** — the lantern. `light` decays on a half-life, `ink` is what
@@ -92,8 +110,9 @@ ones: stroke width is what falls below a pixel as the icon shrinks, so the
 construction is invisible at 16px and crisp at 180px. `apple-touch-icon.png` is
 the same geometry with more padding, since iOS masks it to a squircle.
 
-Zero runtime dependencies. ~32 kB of JS, 13.6 kB gzipped. 8.3 ms median frame
-with the page fully lit, and the same through the second act.
+Zero runtime dependencies. ~43 kB of JS, 18.3 kB gzipped. 8.3 ms median frame
+with the page fully lit, and the same through all three acts — the car is
+rasterised into cells, and there are only about a thousand triangles.
 
 The scroll cue and the closing line are both positioned off the *plane* rather
 than off the screen edges: the cue hangs on the mark's own column, and the line
@@ -108,6 +127,13 @@ page not made of characters.
 Act one is black, bone and a safelight amber. Act two is black, bone and plum,
 and the amber is gone before the plum arrives — the fade finishes at 32% of the
 scroll and the branch does not start growing until 26%.
+
+Act three adds no fourth colour. Exhaust flames on a real V10 are violet-white
+rather than orange, because what is burning is unburnt fuel lighting off in the
+pipe, so the fire is already the plum act two established — the same hue doing
+a different job. Its core is bone rather than white-hot for the same reason the
+whole page is: against a black night a white core is the hottest part of a
+flame, but against a bone-white car it is invisible.
 
 The plum sits at OKLCH hue 357, most of the way round the wheel from the
 safelight's 48. It started at hue 12, which was only 35 degrees off, and 35
@@ -145,6 +171,11 @@ npm run build
 ```
 
 Pushing to `main` deploys via GitHub Actions.
+
+`car.html` is a contact sheet of the R8 at a spread of angles, rendered through
+the real atlas and the real ramp, with `?m=lum` for raw shading and `?m=mat`
+for materials. Judging a mesh through an ASCII ramp confuses two questions at
+once; those two modes separate them.
 
 `banner.html` renders `public/linkedin-banner.png` (1584 × 396) from the page's
 own parts — the same glyph atlas, block face, mark geometry and palette tokens,
