@@ -21,6 +21,8 @@ import { Renderer, type Overlay } from './render';
 
 const IDLE_HINT = 3000;
 const IDLE_GHOST = 9000;
+/** How long the scroll nudge asks loudly before settling into its idle. */
+const NUDGE_LOUD = 8500;
 const MIN_RADIUS = 7;
 const MAX_RADIUS = 17;
 /** Cells per second the idle reader travels along a line of type. */
@@ -45,7 +47,8 @@ const spacer = document.getElementById('spacer') as HTMLElement;
 const hotspots = document.getElementById('hotspots') as HTMLElement;
 const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
-const nudge = document.getElementById('nudge') as HTMLElement;
+const gate = document.getElementById('gate') as HTMLElement;
+const nudge = document.getElementById('nudge') as HTMLButtonElement;
 const caret = document.getElementById('caret') as HTMLElement;
 /**
  * One closing line per scene, looked up by the key the scene names.
@@ -112,6 +115,8 @@ let target: { c: number; r: number } | null = null;
 let cursor: { c: number; r: number } | null = null;
 let radius = MAX_RADIUS;
 let lastInput = performance.now();
+let nudgeOn = false;
+let nudgeAt = 0;
 let touched = false;
 /** Where the lantern is, in client pixels, for lighting the chrome. */
 const lanternAt = { x: -9999, y: -9999 };
@@ -254,6 +259,11 @@ function build(): void {
     field.revealAll(hasChar);
     // A static poster: hand over the mark rather than withholding it.
     unlockMark(true);
+  } else {
+    // A no-op after the first answer. `build` runs again on every resize and on
+    // a reduced-motion change, and being asked to begin again because the
+    // window changed size would be absurd.
+    openGate();
   }
   hotspots.classList.remove('off');
   placeChrome();
@@ -430,6 +440,46 @@ function followScroll(dt: number): void {
 
 function toPlane(clientX: number, clientY: number) {
   return { c: (clientX - originX) / cellW, r: (clientY - originY) / cellH };
+}
+
+/**
+ * Whether the way in is still up.
+ *
+ * The lantern is deaf while it is: pointer movement neither moves the light
+ * nor counts as first contact, because the whole reason this exists is that
+ * moving the mouse is the first thing anyone does and it used to be what
+ * dismissed the explanation. The pulse ring keeps breathing underneath, so the
+ * mechanic is demonstrating itself the whole time the sentence about it is on
+ * screen — which is the pairing the old opening never managed to hold together
+ * for longer than one mousemove.
+ */
+let gateOpen = false;
+/** Whether it has been answered. Once, ever, per visit. */
+let gateDone = false;
+
+function openGate(): void {
+  if (gateDone) return;
+  gateOpen = true;
+  document.body.classList.add('gated');
+  // Two frames, so the transition has a value to move away from — and a check,
+  // because ?reveal answers the question during the same tick that asks it.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (gateOpen) gate.classList.add('up');
+    }),
+  );
+}
+
+function closeGate(): void {
+  gateDone = true;
+  if (!gateOpen) return;
+  gateOpen = false;
+  gate.classList.remove('up');
+  document.body.classList.remove('gated');
+  // The idle clock starts here, not at page load, so the "move your cursor"
+  // backstop is three seconds after they said go rather than three seconds
+  // after they arrived and started reading.
+  lastInput = performance.now();
 }
 
 function noteInput(): void {
@@ -993,7 +1043,7 @@ function frame(now: number): void {
       aspect,
       0.85,
     );
-    typeHint(idle);
+    if (!gateOpen) typeHint(idle);
   }
 
   const aim = reading ? readerAt(dt) : target;
@@ -1064,7 +1114,16 @@ function applyJourney(): void {
   // that is the only level at which it actually takes effect.
   hotspots.classList.toggle('off', ik.in > 0.25);
   // Wait for the rings to finish drawing themselves before asking for more.
-  nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.6 && ik.in < 0.05);
+  const wantNudge = journeySpan() > 0 && markPhase > 0.6 && ik.in < 0.05;
+  if (wantNudge !== nudgeOn) {
+    nudgeOn = wantNudge;
+    if (wantNudge) nudgeAt = performance.now();
+  }
+  nudge.classList.toggle('on', wantNudge);
+  // Loud, then quiet. It is the only thing that says the page continues, so it
+  // has to be seen; it is also the last thing someone who came for the resume
+  // wants blinking at them while they read it, so it stands down on its own.
+  nudge.classList.toggle('fresh', wantNudge && performance.now() - nudgeAt < NUDGE_LOUD);
 
   document.body.classList.toggle('act2', ik.on > 0.02 && phases[CAR].in < 0.12);
   document.body.classList.toggle('act3', phases[CAR].in >= 0.12);
@@ -1139,22 +1198,38 @@ function typeHint(idle: number): void {
 // ── Input ──────────────────────────────────────────────────────────────────
 
 addEventListener('pointermove', (e) => {
-  if (cardMode) return;
+  if (cardMode || gateOpen) return;
   noteInput();
   target = toPlane(e.clientX, e.clientY);
 });
 
 addEventListener('pointerdown', (e) => {
   if (cardMode) return;
+  // Anywhere counts. The button is what tells you a click is what is wanted;
+  // making it the only target that works would be a cursor-accuracy test on a
+  // page whose whole subject is moving a cursor around.
+  if (gateOpen) {
+    // "reveal it all" needs its click, so leave that one to its own handler.
+    if ((e.target as HTMLElement | null)?.closest('#gate-skip')) return;
+    closeGate();
+    return;
+  }
   noteInput();
   const p = toPlane(e.clientX, e.clientY);
   target = p;
   if (!cursor) cursor = { ...p };
 });
 
-addEventListener('scroll', () => syncOrigin(), { passive: true });
+addEventListener('scroll', () => {
+  // Scrolling is an answer too, and a more emphatic one than the button.
+  closeGate();
+  syncOrigin();
+}, { passive: true });
 
 function revealAll(): void {
+  // Whatever asked for this — the button, space, ?reveal — the question the
+  // gate is asking has just been answered by someone who does not want to play.
+  closeGate();
   noteInput();
   field.revealAll(hasChar);
   updatePct();
@@ -1162,6 +1237,14 @@ function revealAll(): void {
 
 addEventListener('keydown', (e) => {
   if (cardMode || e.metaKey || e.ctrlKey || e.altKey) return;
+  // Any key is "begin". Tab included: someone reaching for the keyboard is
+  // asking to get on with it, and the gate is hidden from the accessibility
+  // tree precisely so it never becomes a thing to tab through.
+  if (gateOpen) {
+    if (e.key === ' ') e.preventDefault();
+    closeGate();
+    return;
+  }
 
   // Space reveals while anything is still hidden. Once it is all up it pages
   // the gallery, landing in the middle of each hold — the one place in the
@@ -1205,8 +1288,18 @@ addEventListener('keydown', (e) => {
   };
 });
 
+nudge.addEventListener('click', () => {
+  const span = journeySpan();
+  if (span > 0) scrollTo({ top: nextRest(scrollP, 1) * span, behavior: 'smooth' });
+});
+
 document.getElementById('reveal-toggle')!.addEventListener('click', () => {
   if (!cardMode) revealAll();
+});
+
+document.getElementById('gate-skip')!.addEventListener('click', () => {
+  closeGate();
+  revealAll();
 });
 
 let resizeAt = 0;

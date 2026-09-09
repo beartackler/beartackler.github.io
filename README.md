@@ -3,15 +3,28 @@
 A resume you have to uncover.
 
 The page opens black with a single blinking cursor breathing rings of ASCII
-haze into the dark — the resume shows up only as the gaps those rings leave.
-Moving the pointer drags a lantern across the grid: halftone at the fringe,
-readable type at the core, resolving a word at a time. Dwell and it burns in
-permanently; sweep past and it fades. Leave it alone and the page starts
-reading itself. A readout in the corner tracks how much you've uncovered.
+haze into the dark, a sentence explaining what the cursor is for, and a button
+that says `begin`. Press it — or click anywhere, or hit any key — and the
+pointer drags a lantern across the grid: halftone at the fringe, readable type
+at the core, resolving a word at a time. Dwell and it burns in permanently;
+sweep past and it fades. Leave it alone and the page starts reading itself. A
+readout in the corner tracks how much you've uncovered.
+
+The button is there because the version without it taught the mechanic only to
+people who sat perfectly still. The pulse ring demonstrated what the cursor
+does, and a line of type offered to explain it after three seconds of
+stillness — but the first thing anyone does on a new page is move the mouse,
+and moving the mouse was what dismissed both. So it asks first and waits, with
+the ring still breathing behind the panel: the demonstration and the sentence
+about it, on screen together, for as long as it takes to read.
 
 Uncover the page and four rings — the ikigai diagram — draw themselves in the
 middle of it. Sweeping the lantern along a ring burns that stretch in. One word
-appears at the bottom of the screen: `scroll`.
+appears in the middle of the screen: `scroll`, in a pocket of dark knocked out
+of the haze, bright for eight seconds and then permanently quieter. It is the
+only thing on the page saying there is more, so it has to be seen; it is also
+the last thing someone reading the resume wants blinking at them, so it stands
+down on its own and stays a button you can press.
 
 That is the way into a gallery of six slides. Each is an image made of
 characters, with a line under it:
@@ -55,10 +68,19 @@ advance in visible steps. `space` pages between slides, landing in the middle
 of each hold — the one place in the timeline guaranteed to be a finished
 composition.
 
-Nobody is trapped in the game. `space` lights the whole thing while anything is
-still hidden, `resume` is the PDF, and the full resume — with every one of the
-six lines and its attribution — is in the DOM at all times for screen readers,
+Nobody is trapped in the game. The opening panel offers `reveal it all` beside
+`begin`, `space` lights the whole thing while anything is still hidden,
+`?reveal` skips straight to it, `resume` is the PDF — the chrome sits above the
+panel and stays clickable throughout, so someone who came for the PDF never has
+to answer a question first — and the full resume, with every one of the six
+lines and its attribution, is in the DOM at all times for screen readers,
 crawlers and `noscript`.
+
+Both the opening panel and the scroll nudge are hidden from the accessibility
+tree and out of the tab order, and neither is an ARIA dialog. A screen reader
+should get the resume, not a modal about a cursor trick it cannot use; a
+keyboard gets the same escapes by other means, since any key dismisses the
+panel and `space` reveals.
 
 A touch screen has no cursor, so it gets a card instead of the page: the
 wordmark, the rule, one line about what it is missing, and the two things a

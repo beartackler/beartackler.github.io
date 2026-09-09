@@ -20,10 +20,29 @@
 
     <p id="boot" aria-hidden="true"><span>&#9608;</span></p>
     <p id="hint" aria-hidden="true">move your cursor</p>
-    <p id="nudge" aria-hidden="true">
+
+    <!-- The way in. Deliberately not a modal in the ARIA sense: the resume is
+         in #doc at all times and a screen reader should get that, not a
+         dialog about a cursor trick it cannot use. So this is hidden from the
+         accessibility tree, its buttons are out of the tab order, and any
+         keypress dismisses it. -->
+    <div id="gate" aria-hidden="true">
+      <p class="gate-lede">this is a resume. it is dark on purpose.</p>
+      <p class="gate-body">your cursor is the light. move it across the page and the words develop where you look.</p>
+      <p class="gate-acts">
+        <button id="gate-go" type="button" tabindex="-1">begin</button>
+        <button id="gate-skip" type="button" tabindex="-1">reveal it all</button>
+      </p>
+    </div>
+    <!-- A button, not a caption. It is the only thing on the page telling you
+         there is more, and something you can press is a better invitation than
+         something that only says a word. Hidden from the accessibility tree
+         and out of the tab order for the same reason as the gate: a screen
+         reader gets #doc, which has all of it already. -->
+    <button id="nudge" type="button" aria-hidden="true" tabindex="-1">
       <span class="word">scroll</span>
       <span class="fall"><i>+</i><i>=</i><i>-</i><i>:</i><i>.</i></span>
-    </p>
+    </button>
     <span id="caret" aria-hidden="true"></span>
     <!--CODA-->
 
@@ -37,7 +56,7 @@
 
     <noscript>
       <style>
-        #field, #hotspots, #spacer, #boot, #hint, #nudge, #caret, #coda, .chrome { display: none !important; }
+        #field, #hotspots, #spacer, #boot, #hint, #gate, #nudge, #caret, #coda, .chrome { display: none !important; }
         #doc { position: static !important; clip-path: none !important; width: auto !important; height: auto !important; }
       </style>
     </noscript>

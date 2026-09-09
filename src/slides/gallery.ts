@@ -176,61 +176,112 @@ const ROCK_RX = 210;
 const ROCK_RY = 196;
 
 /**
- * The man: a torso quad, a head, and four stroked limbs.
+ * A tapered segment — a limb thicker at one end than the other.
  *
- * Outlining him instead is what the first attempt did, and at this size an
- * outlined figure is a dozen parallel lines inside as many cells. Filled, he
- * is one shape with a silhouette, which is the only thing that survives the
- * resample anyway.
- *
- * The stance is the reference's rather than a textbook push: both feet low and
- * behind on the shallow part of the slope, the body laid along the diagonal,
- * both arms up into the overhang. Standing square underneath makes a
- * caryatid, which is a different story about a different man.
+ * Constant-width strokes are what made the first figure a stick man, and no
+ * amount of extra line work fixes that: a thigh and a shin drawn at the same
+ * weight are a hinge, not a leg. Two quads that narrow toward the joint, with
+ * a disc at the joint itself to fill the notch, cost the same four points and
+ * come out human.
  */
-const TORSO = [458, 348, 506, 372, 442, 528, 398, 506];
-const CHITON = [398, 492, 460, 516, 446, 578, 382, 552];
-const HEAD = circle(466, 296, 32, 34);
+function bone(x0: number, y0: number, w0: number, x1: number, y1: number, w1: number): number[] {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  return [
+    x0 + nx * w0, y0 + ny * w0,
+    x1 + nx * w1, y1 + ny * w1,
+    x1 - nx * w1, y1 - ny * w1,
+    x0 - nx * w0, y0 - ny * w0,
+  ];
+}
+
 /**
- * [width in cells, tone, ...points] per limb, far side first.
+ * The man, built out of eighteen filled parts rather than four strokes.
  *
- * Two arms, not four bones. Drawn as a shoulder, an elbow and a hand each,
- * the pair came out as one horizontal slab seven rows deep with the head
- * welded into the middle of it — anatomically right and completely
- * unreadable. What survives at this size is the *gesture*: one bright wedge
- * going up into the rock with a dimmer one behind it, and the head kept well
- * clear of both so there is black around it.
+ * He is small — about thirty-seven rows — but thirty-seven rows is a sprite,
+ * not a pictogram, and there is room in it for a body that tapers to a waist,
+ * a thigh heavier than its calf, an elbow, feet, and a head turned up at the
+ * thing he is under. The earlier version spent that room on nothing: four
+ * strokes of even width, which is the anatomy of a road sign.
+ *
+ * The stance is the reference vase's rather than a textbook push: both feet
+ * low and behind on the shallow part of the slope, the body laid along the
+ * diagonal, both arms up into the overhang. Standing square underneath makes a
+ * caryatid, which is a different story about a different man.
+ *
+ * The arms run at about thirty degrees above horizontal, which looks shallow
+ * written down and is right: the rock is ahead of him as much as above him, so
+ * he is pushing along it. Arms raised to the vertical is a man holding
+ * something up, and holding it up is the one thing Sisyphus never gets to do.
  */
-const LIMBS: [number, number, ...number[]][] = [
-  [3.4, 0.58, 492, 372, 530, 334, 592, 292],
-  [3.8, 0.6, 416, 520, 322, 588, 218, 700],
-  [5, 1, 505, 366, 545, 320, 608, 254],
-  [4.6, 1, 436, 526, 528, 578, 466, 642],
+const TORSO = [
+  // Left side, shoulder to seat, then the right side back up. Stations at the
+  // shoulders, chest, waist and hips, so it has a waist to taper to.
+  450, 346, 444, 376, 437, 425, 418, 465, 405, 511,
+  459, 529, 476, 485, 485, 441, 508, 398, 522, 370,
+];
+const LOINCLOTH = [404, 498, 468, 514, 458, 570, 398, 552];
+// Seven heads to the figure, not five. The first pass gave him a head as wide
+// as his own shoulders, which is a child's proportion and reads as a doll.
+const HEAD = disc(458, 286, 27, 23, -0.4);
+const HAIR = disc(438, 292, 15, 13, -0.35);
+
+/** Every filled part of him, far side first so the near side draws over it. */
+const FIGURE: { d: number[]; tone: number }[] = [
+  { d: bone(476, 356, 17, 520, 318, 13), tone: 0.55 },
+  { d: circle(520, 318, 13, 14), tone: 0.55 },
+  { d: bone(520, 318, 13, 600, 288, 9), tone: 0.55 },
+  { d: circle(602, 288, 12, 14), tone: 0.6 },
+  { d: bone(412, 512, 27, 326, 584, 19), tone: 0.55 },
+  { d: circle(326, 584, 18, 16), tone: 0.55 },
+  { d: bone(326, 584, 19, 222, 692, 12), tone: 0.55 },
+  { d: [200, 684, 248, 690, 250, 704, 196, 700], tone: 0.6 },
+  { d: TORSO, tone: 1 },
+  { d: LOINCLOTH, tone: 0.62 },
+  { d: bone(466, 314, 11, 486, 358, 16), tone: 0.95 },
+  { d: HAIR, tone: 0.78 },
+  { d: HEAD, tone: 1 },
+  { d: circle(452, 522, 24, 18), tone: 1 },
+  { d: bone(452, 522, 28, 534, 578, 21), tone: 1 },
+  { d: circle(534, 578, 19, 16), tone: 1 },
+  { d: bone(534, 578, 21, 472, 640, 13), tone: 1 },
+  { d: [442, 634, 494, 642, 496, 656, 438, 652], tone: 1 },
+  { d: circle(510, 376, 19, 16), tone: 1 },
+  { d: bone(510, 376, 20, 556, 330, 15), tone: 1 },
+  { d: circle(556, 330, 14, 14), tone: 1 },
+  { d: bone(556, 330, 15, 614, 258, 10), tone: 1 },
+  { d: circle(616, 256, 13, 14), tone: 1 },
+];
+
+/**
+ * The cuts. Dark strokes over the fill, and the whole interior of the figure.
+ *
+ * Four, and four is the ceiling. Six turns the torso into a barcode: a chest
+ * six cells wide cannot hold three fold lines and still be a chest. These are
+ * the four that do structural work — a neck, a pectoral, the near arm passing
+ * in front of the ribs, and daylight between the legs.
+ */
+const CUTS: [number, number, ...number[]][] = [
+  [1.1, 0.1, 466, 320, 492, 336],
+  [0.9, 0.2, 462, 388, 502, 402],
+  [1, 0.14, 506, 388, 492, 420],
+  [1, 0.14, 436, 526, 448, 552],
 ];
 
 function pusher(): Art['shapes'] {
-  // A halo of nothing, first. He stands against the boulder's lit rim, and two
-  // bright shapes touching on a grid this coarse are one shape. Drawing the
-  // same geometry at tone zero with a fatter pen erases what is behind him, so
-  // the rock ends where he begins — which is what a pot gets for free by
-  // painting the man in the other colour.
-  const gap: Art['shapes'] = [
-    ...LIMBS.map(([w, , ...d]) => ({ tone: 0, stroke: w + 2.6, open: true, d })),
-    { tone: 0, stroke: 3.4, d: TORSO },
-    { tone: 0, stroke: 3.4, d: CHITON },
-    { tone: 0, stroke: 3.4, d: HEAD },
-  ];
+  // A halo of nothing, first, and for the whole figure before any of it is
+  // filled. He stands against the boulder's lit rim, and two bright shapes
+  // touching on a grid this coarse are one shape. Drawing the same geometry at
+  // tone zero with a fatter pen erases what is behind him, so the rock ends
+  // where he begins — which is what a pot gets for free by painting the man in
+  // the other colour.
   return [
-    ...gap,
-    ...LIMBS.slice(0, 2).map(([w, tone, ...d]) => ({ tone, stroke: w, open: true, d })),
-    { tone: 1, d: TORSO },
-    { tone: 0.86, d: CHITON },
-    { tone: 0.9, stroke: 3, open: true, d: [478, 356, 470, 330] },
-    { tone: 1, d: HEAD },
-    ...LIMBS.slice(2).map(([w, tone, ...d]) => ({ tone, stroke: w, open: true, d })),
-    // Hair bound at the nape, on the side away from the rock. In a filled
-    // silhouette it is the only thing that says which way he is facing.
-    { tone: 0.82, stroke: 2, open: true, d: [448, 270, 434, 298, 448, 324] },
+    ...FIGURE.map(({ d }) => ({ tone: 0, stroke: 3, d })),
+    ...FIGURE.map(({ d, tone }) => ({ tone, d })),
+    ...CUTS.map(([w, tone, ...d]) => ({ tone, stroke: w, open: true, d })),
   ];
 }
 
