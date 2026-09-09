@@ -102,6 +102,14 @@ body:not(.ready) .chrome {
    itself had faded. They have to be switched off themselves. */
 #hotspots.off a {
   pointer-events: none;
+  /* Out of the tab order too, or the resume's links stay reachable by keyboard
+     long after the resume itself has faded. */
+  visibility: hidden;
+}
+
+#hotspots a:focus-visible {
+  outline: 1px solid var(--glow);
+  outline-offset: 3px;
 }
 
 #spacer {
@@ -584,9 +592,12 @@ body.act2 .odo-digit {
   color: var(--bloom);
 }
 
-/* `reveal` has nothing left to reveal once the journey has started. */
-body.act2 #reveal-toggle {
+/* Nothing after the last scene to advance to, and the way out carries its own
+   way back. Visibility rather than opacity, so a control that cannot be used is
+   not still in the tab order. */
+#reveal-toggle.spent {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
@@ -666,12 +677,17 @@ body.act2 #reveal-toggle {
   gap: 0.55rem;
   text-align: center;
   opacity: 0;
+  /* Not `opacity: 0` alone. These are real links in the tab order, so until the
+     scroll brings them in they have to be gone from the accessibility tree and
+     the tab order as well, and visibility is the one property that does both. */
+  visibility: hidden;
   pointer-events: none;
 }
 
 /* Opacity is set per frame from the scroll position; the class only decides
-   whether the links underneath it can be clicked. */
+   whether the block is reachable at all. */
 #outro.on {
+  visibility: visible;
   pointer-events: auto;
 }
 

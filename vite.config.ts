@@ -76,24 +76,28 @@ function resumeDocument(): Plugin {
     </figure>`;
       const coda = QUOTES.map((k: string) => quote(k, data[k])).join('');
 
-      // The way out. Same data as the header above, because someone who has just
-      // scrolled through the whole gallery should not have to scroll back up to
-      // find out how to get in touch. Hidden from the accessibility tree and
-      // out of the tab order like the rest of the canvas chrome: #doc is the
-      // copy that reads, and it has all of this already.
+      // The way out. Same data as the header above, because someone who has
+      // just scrolled through the whole gallery should not have to scroll back
+      // up to find out how to get in touch.
+      //
+      // These links are real: in the tab order, in the accessibility tree, and
+      // announced. `visibility: hidden` takes the whole block out of both until
+      // the scroll brings it in, which is what stops a screen reader meeting a
+      // sign-off at the top of the page. The decorative bits — the blinking
+      // block and the rule — are hidden by hand, because they are texture.
       const outro = `
-    <div id="outro" aria-hidden="true">
-      <p class="outro-mark"><span>&#9608;</span></p>
+    <div id="outro">
+      <p class="outro-mark" aria-hidden="true"><span>&#9608;</span></p>
       <p class="outro-lede">that's all of it.</p>
-      <p class="outro-rule">...'''::::---===+++**##@@##**+++===---::::'''...</p>
+      <p class="outro-rule" aria-hidden="true">...'''::::---===+++**##@@##**+++===---::::'''...</p>
       <ul class="outro-links">
-        <li><a href="mailto:${esc(p.email)}" tabindex="-1">${esc(p.email)}</a></li>
-        <li><a href="${esc(p.githubHref)}" tabindex="-1">${esc(p.github)}</a></li>
-        <li><a href="${esc(p.linkedinHref)}" tabindex="-1">${esc(p.linkedin)}</a></li>
+        <li><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></li>
+        <li><a href="${esc(p.githubHref)}">${esc(p.github)}</a></li>
+        <li><a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a></li>
       </ul>
       <p class="outro-acts">
-        <a href="${esc(p.resume)}" target="_blank" rel="noopener" tabindex="-1">resume.pdf</a>
-        <button id="to-top" type="button" tabindex="-1">back to the top</button>
+        <a href="${esc(p.resume)}" target="_blank" rel="noopener">resume.pdf</a>
+        <button id="to-top" type="button">back to the top</button>
       </p>
     </div>`;
 

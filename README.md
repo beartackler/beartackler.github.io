@@ -83,11 +83,27 @@ to answer a question first — and the full resume, with every one of the six
 lines and its attribution, is in the DOM at all times for screen readers,
 crawlers and `noscript`.
 
-Both the opening panel and the scroll nudge are hidden from the accessibility
-tree and out of the tab order, and neither is an ARIA dialog. A screen reader
-should get the resume, not a modal about a cursor trick it cannot use; a
-keyboard gets the same escapes by other means, since any key dismisses the
-panel and `space` reveals.
+Everything on the page a mouse can click, a keyboard can reach. The resume's
+links are invisible boxes over the canvas and used to be out of the tab order,
+on the grounds that `#doc` exposes every one of them — which is true for a
+screen reader, whose reading cursor does not use the tab order, and false for
+anyone sighted navigating by keyboard, because they cannot see `#doc`. That
+left the email address on this page reachable only with a mouse. Focus now
+does what hover does and points the lantern at the word as well, because
+tabbing to a link in act one has to uncover it.
+
+The opening panel and the scroll nudge stay hidden from the accessibility tree
+and out of the tab order, and neither is an ARIA dialog: a screen reader should
+get the resume, not a modal about a cursor trick it cannot use, and a keyboard
+gets the same escapes by other means since any key dismisses the panel. The
+sign-off at the end is the opposite case — real links, announced, in the tab
+order — and `visibility: hidden` takes the whole block out of both until the
+scroll brings it in.
+
+`space` reveals while anything is still hidden and pages the gallery once
+nothing is, and the button in the corner says which of those it is doing. For a
+while it said `reveal` the whole way down, so from the first slide to the last
+the chrome advertised a control that did something else.
 
 A touch screen has no cursor, so it gets the resume rather than the game: the
 wordmark, the contacts, the PDF, then every role, degree and skill, stacked in

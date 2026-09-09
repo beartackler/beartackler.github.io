@@ -50,6 +50,7 @@ const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const gate = document.getElementById('gate') as HTMLElement;
 const outro = document.getElementById('outro') as HTMLElement;
+const revealBtn = document.getElementById('reveal-toggle') as HTMLButtonElement;
 const nudge = document.getElementById('nudge') as HTMLButtonElement;
 const caret = document.getElementById('caret') as HTMLElement;
 /**
@@ -367,7 +368,12 @@ function buildHotspots(): void {
   for (const l of plane.links) {
     const a = document.createElement('a');
     a.href = l.href;
-    a.tabIndex = -1; // the accessible document already exposes these links
+    // In the tab order. They used to be out of it, on the grounds that #doc
+    // already exposes every link — which is true for a screen reader, whose
+    // reading cursor does not use the tab order, and false for anyone sighted
+    // navigating by keyboard because they cannot see #doc. That left the email
+    // address on this page reachable only with a mouse.
+    a.tabIndex = 0;
     a.style.left = `${originX + l.col * cellW}px`;
     a.style.top = `${l.row * cellH}px`;
     a.style.width = `${l.len * cellW}px`;
@@ -378,6 +384,17 @@ function buildHotspots(): void {
       a.target = '_blank';
       a.rel = 'noopener';
     }
+    // Focus does what hover does, and points the lantern at it: tabbing to a
+    // word in act one has to uncover it, or the keyboard route lands on a
+    // link nobody can read.
+    a.addEventListener('focus', () => {
+      noteInput();
+      renderer.hot = l;
+      target = { c: l.col + l.len / 2, r: l.row };
+    });
+    a.addEventListener('blur', () => {
+      if (renderer.hot === l) renderer.hot = null;
+    });
     a.addEventListener('pointerenter', () => {
       renderer.hot = l;
     });
@@ -1153,6 +1170,17 @@ function applyJourney(): void {
   // Clamped at six, because the outro is not a slide — it is the page saying
   // that was all of them.
   if (ik.in > 0.02) setReadout(Math.min(sceneAt + 1, SLIDES), SLIDES, 'slides');
+
+  // The button and the key it advertises have to agree. `space` reveals while
+  // anything is still hidden and pages the gallery once nothing is, and for a
+  // long time the label said "reveal" the whole way down — so from the first
+  // slide to the last the chrome offered a control that did something else.
+  // On the final scene it goes: there is nothing after it, and the way out has
+  // its own way back.
+  const pageable = uncovered >= plane.wordCount && plane.wordCount > 0;
+  const lastScene = sceneAt >= SCENES.length - 1 && ik.in > 0.02;
+  revealBtn.textContent = pageable ? 'next' : 'reveal';
+  revealBtn.classList.toggle('spent', lastScene);
   // The way out arrives on its own entrance and then simply stays: it has no
   // exit beat, so there is nothing to fade it back out for. Driven by scroll
   // rather than by a CSS transition on a class, like everything else here —
@@ -1160,7 +1188,10 @@ function applyJourney(): void {
   // after the scroll has stopped.
   const away = phases[SCENES.length - 1];
   outro.style.opacity = smooth(away.in / 0.55).toFixed(3);
-  outro.classList.toggle('on', away.in > 0.02);
+  // A little way in, not at the first pixel: the class is what puts real links
+  // into the tab order, and doing that while they are still at zero opacity
+  // hands the keyboard something invisible.
+  outro.classList.toggle('on', away.in > 0.25);
 
   // Each scene owns its own closing line, and shows it for the whole of its
   // hold. That is the entire point of the hold: the line's fade is 1.4s, and
@@ -1317,8 +1348,14 @@ nudge.addEventListener('click', () => {
   if (span > 0) scrollTo({ top: nextRest(scrollP, 1) * span, behavior: 'smooth' });
 });
 
-document.getElementById('reveal-toggle')!.addEventListener('click', () => {
-  if (!cardMode) revealAll();
+revealBtn.addEventListener('click', () => {
+  if (cardMode) return;
+  if (uncovered < plane.wordCount) {
+    revealAll();
+    return;
+  }
+  const span = journeySpan();
+  if (span > 0) scrollTo({ top: nextRest(scrollP, 1) * span, behavior: 'smooth' });
 });
 
 document.getElementById('to-top')!.addEventListener('click', () => {
