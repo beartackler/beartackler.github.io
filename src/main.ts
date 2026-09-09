@@ -2,7 +2,7 @@ import './style.css';
 import { Atlas, type Palette } from './atlas';
 import { Blossom } from './blossom';
 import { Field } from './field';
-import { CELL_ASPECT, compose, composeCard, type Plane } from './layout';
+import { CELL_ASPECT, compose, composeCard, NARROW_COLS, type Plane } from './layout';
 import { Clearance, MarkField, markExtent, SPREAD } from './mark';
 import { at, fit, Painter, type Art } from './art';
 import { plume, type Emitter } from './flame';
@@ -169,10 +169,19 @@ function cellMetrics(cw: number) {
  * the cell shrinks until the composition also fits the height. Scrolling is
  * reserved for the second act.
  */
-function fitMetrics(w: number, h: number, plan: typeof compose) {
+function fitMetrics(w: number, h: number, plan: typeof compose, scrolls = false) {
   // The fixed controls are not part of the plane, so their height comes off
   // the budget before anything is measured against it.
   h -= chrome.offsetHeight + 6;
+  if (scrolls) {
+    // A layout that is going to scroll anyway has no reason to shrink its type
+    // to fit a height. Width alone decides, and the width that matters is the
+    // one the wordmark needs — MONASYPOV as block type is fifty-four columns,
+    // and everything else on a phone is set to whatever that leaves.
+    const cw = Math.min(11, Math.max(4, Math.floor(w / (NARROW_COLS + 2))));
+    const m = cellMetrics(cw);
+    return { ...m, cols: Math.max(20, Math.floor(w / m.cw)), fits: false };
+  }
   const targetCols = w >= 1280 ? 152 : w >= 1024 ? 128 : w >= 700 ? 92 : 60;
   let cw = Math.min(11, Math.max(4, Math.floor(w / targetCols)));
 
@@ -203,7 +212,7 @@ function build(): void {
   cardMode = smallScreen();
   const plan = cardMode ? composeCard : compose;
   document.body.classList.toggle('card', cardMode);
-  const m = fitMetrics(w, h, plan);
+  const m = fitMetrics(w, h, plan, cardMode);
   cellW = m.cw;
   cellH = m.ch;
   posterFits = m.fits;
@@ -415,6 +424,9 @@ function syncOrigin(): void {
   // small to fit the poster scrolls the plane itself.
   originY = posterFits ? 0 : -Math.round(scrollY);
   hotspots.style.transform = `translateY(${originY}px)`;
+  // The caret is a fixed element parked at a plane row, so it has to be moved
+  // by hand when the plane is what scrolls.
+  if (plane.caret) caret.style.top = `${plane.caret.row * cellH + originY}px`;
 
   const span = journeySpan();
   scrollRaw = span > 0 ? Math.min(1, Math.max(0, scrollY / span)) : 0;

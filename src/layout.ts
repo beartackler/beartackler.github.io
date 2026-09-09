@@ -278,7 +278,9 @@ function paintName(d: Draft, x: number, row: number, avail: number): number {
 
 const LEFT_W = 52;
 const RIGHT_W = 46;
-const NARROW_W = 54; // exactly wide enough for MONASYPOV as block type
+/** Exactly wide enough for MONASYPOV as block type. */
+const NARROW_W = 54;
+export const NARROW_COLS = NARROW_W;
 
 export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
   const d = new Draft();
@@ -368,18 +370,24 @@ export function compose(cols: number, minRows = 0, reserveRows = 0): Plane {
 }
 
 /**
- * The small-screen card.
+ * The phone layout.
  *
  * The whole page is a cursor dragged across a grid, and a touch screen has no
- * cursor: the lantern has nothing to follow, the two-column poster has nowhere
- * to go, and the second act has no room to play. Rather than shrink all of it
- * into something that works badly, say so, in the same type — and hand over
- * the two things a visitor on a phone actually came for.
+ * cursor: the lantern has nothing to follow and the second act has no room to
+ * play. That much has always been true. What was wrong was the conclusion —
+ * for a long time this said so in four lines and handed over a PDF link, which
+ * meant a recruiter reading on a phone got a name and a download and none of
+ * the work.
+ *
+ * So it is the resume now, in the same type, stacked and scrolling: the roles
+ * without their bullets, the degrees, and the ways to get in touch. The one
+ * line about the desktop stays, because the gallery really is desktop-only,
+ * but it goes at the bottom where it belongs — an aside rather than a wall.
  */
 export function composeCard(cols: number, minRows = 0, reserveRows = 0): Plane {
   const d = new Draft();
-  const w = Math.min(NARROW_W, cols - 4);
-  const x0 = Math.max(2, Math.floor((cols - w) / 2));
+  const w = Math.min(NARROW_W, cols - 2);
+  const x0 = Math.max(1, Math.floor((cols - w) / 2));
 
   d.home = { col: x0 + 8, row: 4 };
   d.markRest = { col: x0 + Math.round(w / 2), row: 6, rows: 10 };
@@ -390,21 +398,35 @@ export function composeCard(cols: number, minRows = 0, reserveRows = 0): Plane {
   d.text(x0, y, rulePattern(w), Tone.Muted);
   y += 3;
 
-  d.text(x0, y++, 'this page is a room you walk', Tone.Ink);
-  d.text(x0, y, 'through with a cursor.', Tone.Ink);
-  y += 2;
-  const closing = 'it wants a desktop.';
-  d.text(x0, y, closing, Tone.Accent);
-  // The same blinking block the page opens with, so the card is recognisably
-  // the same machine, just resting.
-  d.caret = { col: x0 + closing.length + 1, row: y };
-  y += 3;
-
-  d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
-  y += 2;
-  d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Dim);
+  // Reach first. On a phone the thing being looked for is usually a way to
+  // get in touch, and putting it at the top costs the rest of the page one
+  // screenful of scrolling that it does not need.
+  d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
   d.link(x0, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
   d.link(x0, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
+  y += 1;
+  d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Accent);
+  y += 3;
+
+  y = d.block(x0, y, 'NOW', Tone.Display) + 2;
+  for (const r of NOW) y = roleBlock(d, x0, y, r) + 1;
+  y += 1;
+  y = d.block(x0, y, 'BEFORE', Tone.Display) + 2;
+  for (const r of BEFORE) y = roleBlock(d, x0, y, r) + 1;
+  y += 1;
+  y = d.block(x0, y, 'EDU', Tone.Display) + 2;
+  y = paintEdu(d, x0, y) + 1;
+  y = d.block(x0, y, 'MAKES', Tone.Display) + 2;
+  y = paintMakes(d, x0, y) + 3;
+
+  d.text(x0, y++, 'the rest of this page is a room', Tone.Muted);
+  d.text(x0, y, 'you walk through with a cursor.', Tone.Muted);
+  y += 1;
+  const closing = 'it wants a desktop.';
+  d.text(x0, y, closing, Tone.Dim);
+  // The same blinking block the page opens with, so the phone is recognisably
+  // the same machine, just resting.
+  d.caret = { col: x0 + closing.length + 1, row: y };
 
   return d.bake(cols, minRows, reserveRows);
 }

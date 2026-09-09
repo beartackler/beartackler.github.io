@@ -89,10 +89,19 @@ should get the resume, not a modal about a cursor trick it cannot use; a
 keyboard gets the same escapes by other means, since any key dismisses the
 panel and `space` reveals.
 
-A touch screen has no cursor, so it gets a card instead of the page: the
-wordmark, the rule, one line about what it is missing, and the two things a
-visitor on a phone actually came for. Shrinking a cursor game onto a phone
-produces something that works badly; saying so produces something that works.
+A touch screen has no cursor, so it gets the resume rather than the game: the
+wordmark, the contacts, the PDF, then every role, degree and skill, stacked in
+the same type and scrolling. The lantern and the gallery really are
+desktop-only, and for a long time the phone said so in four lines and handed
+over a PDF link — which meant a recruiter reading on the train got a name, a
+download, and none of the work. The note about the desktop is still there. It
+is at the bottom now, where an aside goes.
+
+Type on a phone is sized by what the wordmark needs — MONASYPOV as block type
+is fifty-four columns — and then the page scrolls, rather than the cell
+shrinking until the whole composition fits a screen it was never going to fit.
+A layout that is going to scroll anyway has no business shrinking its type to
+fit a height.
 
 ## How it works
 
