@@ -68,7 +68,7 @@ WIDTHS.forEach((wCells, n) => {
     ? { ...ART, shapes: ART.shapes.slice(Number(only.split('-')[0]), Number(only.split('-')[1])) }
     : ART;
   painter.draw(art, fit(ART, wCells, rows - 2, COLS / 2, rows / 2, CELL_ASPECT));
-  painter.paint(ov, atlas.ramp, 1, prio, 1);
+  painter.paint(ov, 1, prio, 1);
 
   for (let r = 0; r < rows; r++) {
     for (let col = 0; col < COLS; col++) {

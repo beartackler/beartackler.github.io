@@ -97,19 +97,33 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   - Stroke widths are given in *cells*, not artwork pixels. A line thinner than
     a cell is not a line, it is a fraction of coverage that the compositor
     dilutes into whatever it is drawn over.
-  - A stroke is *sharpened* after rasterising: the cells a line passes through
-    take the line's own brightness rather than their coverage of it. A one-cell
-    line rarely lands squarely inside a cell, so its coverage comes out around
-    a half — and half coverage times full tone lands on a sparse glyph on a dim
-    sheet. Drawn that way the R8's wheels were in the buffer and invisible on
-    the page. Fills still take their glyph from coverage, because thinning out
-    is what less of a *region* looks like.
+  - A stroke is *sharpened* after rasterising, and a line cell is then resolved
+    from its tone alone. A one-cell line rarely lands squarely inside a cell, so
+    its coverage comes out around a half — and half coverage times full tone
+    lands on a sparse glyph on a dim sheet. Drawn that way the R8's wheels were
+    in the buffer and invisible on the page. Coverage decides only *whether* a
+    line lights a cell. Resolving one from coverage instead, which is where that
+    fix first landed, costs a drawing all its depth: every line comes out at the
+    same weight and a dim one differs only in colour, so a far rope reads as
+    near. Fills still resolve from tone times coverage, because thinning out is
+    what less of a *region* looks like.
+  - The drawings resolve through their own eight-mark ramp, `. : - = + * # @`,
+    rather than the atlas's measured one. The measured ramp is ordered purely by
+    how much ink a glyph puts in a cell, which is right for haze — variety is
+    the point there — but its middle is `\\ / < > ~ { }`, and a line drawn in
+    those does not read as a fainter line, it reads as scratches and chain
+    links.
   - `edge` fills a path and keeps only the boundary of what got filled, and
     `edge: 'outer'` keeps only the boundary against a flood from outside. A
     traced contour cannot be stroked: marching squares walks one continuous
     loop through every detached component, so the path doubles back constantly
     — under an even-odd fill those excursions cancel, stroked they all draw,
-    and the car's silhouette came out as a hedge.
+    and the car's silhouette came out as a hedge. Both take a width, and the
+    boundary is grown inward so a heavier line never makes the thing it outlines
+    any bigger.
+  - `specks` lights exactly one cell per point, unsmoothed. Scree on a hill,
+    chalk in the air, a crowd in the dark. `hue: 'plum'` moves a shape onto act
+    two's sheets — a lamp, a sprout, a sun.
 - **`src/slides/r8.ts`** — the car, traced from a dimensioned CAD side elevation
   rather than modelled. The drawing is 955 × 275, aspect 3.47; a real R8 is
   4431 × 1252 mm, aspect 3.539 — within 2%, so tracing it gives proportions that
@@ -130,12 +144,31 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   biggest region must be the silhouette drawn twice, which is exactly wrong,
   because the silhouette runs along the ground under the tyres and this one runs
   around the arches.
-- **`src/slides/gallery.ts`** — the other six. Sisyphus is drawn as a solid
-  silhouette against a line-drawn boulder rather than as the sketch's stick
-  figure, because a limb at this size is one cell wide and three parallel
-  one-cell lines beside the rim of a stone arrive as gravel. The jar, the frame
-  and the ring are outline only: a dim fill still puts a character in every
+- **`src/slides/gallery.ts`** — the other six. Two rules run through all of
+  them, both learned by getting them wrong:
+
+  People are drawn as solid silhouettes, never as stick figures. A limb at this
+  size is one cell wide, and three parallel one-cell lines beside the rim of a
+  stone — or behind three ropes — arrive as gravel.
+
+  Every picture has something in the empty part of it. The slide that already
+  worked is the one with a plum branch shedding petals across the whole frame,
+  and most of what it had that the others lacked was air with something in it: a
+  hill with nothing on it is a diagonal line, and a hill with scree on it is a
+  hill. So there is chalk over the bar, dust in Dorian's empty room, grit and
+  tyre smoke under the R8, a crowd in the dark around the ring, and motes in the
+  light above it.
+
+  Nothing is filled except people: a dim fill still puts a character in every
   cell, and two thousand of them is a wall, not a shadow.
+
+  The wrestling slide took four goes. A championship belt hung in the V a real
+  one hangs in came out as a moth. A square-on elevation of a ring came out as a
+  lamp over a table, and so did the same ring in three-quarter perspective —
+  because a ring is furniture, and furniture drawn accurately is furniture. What
+  works is one corner post at the edge of the frame, three ropes running out of
+  it, and two men in the middle: the subject is not the object, it is what is
+  happening on it.
 - **`src/flame.ts`** — the exhaust plume, and the one out of Pandora's jar. Same
   code, turned upright.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
@@ -172,7 +205,7 @@ ones: stroke width is what falls below a pixel as the icon shrinks, so the
 construction is invisible at 16px and crisp at 180px. `apple-touch-icon.png` is
 the same geometry with more padding, since iOS masks it to a squircle.
 
-Zero runtime dependencies. ~53 kB of JS, 22.5 kB gzipped, of which 7 kB is the
+Zero runtime dependencies. ~57 kB of JS, 23.8 kB gzipped, of which 7 kB is the
 car's path data. 8.3 ms median frame with the page fully lit and the same
 through the whole gallery.
 

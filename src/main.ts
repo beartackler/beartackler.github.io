@@ -762,7 +762,7 @@ function stepCar(now: number): void {
 
   painter.clear();
   painter.draw(R8_ART, carBox);
-  painter.paint(overlay, atlas.ramp, arrive * ph.on, overlayPrio, 1);
+  painter.paint(overlay, arrive * ph.on, overlayPrio, 1);
 
   const emitters: Emitter[] = PIPES.map(([x, y]) => {
     const q = at(R8_ART, carBox!, x, y);
@@ -826,7 +826,7 @@ function stepSlides(now: number): void {
     );
     painter.clear();
     painter.draw(art, box);
-    painter.paint(overlay, atlas.ramp, ph.on, overlayPrio, 1);
+    painter.paint(overlay, ph.on, overlayPrio, 1);
 
     if (SCENES[i].id === 'pandora') {
       // What escapes the jar is the exhaust plume again, turned upright. Two

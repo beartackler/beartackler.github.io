@@ -27,6 +27,18 @@ import type { Overlay } from './render';
  */
 const AIR = 0.03;
 
+/**
+ * The ramp the drawings resolve through: eight marks, light to heavy.
+ *
+ * Hand-picked rather than the atlas's measured one. The measured ramp is
+ * ordered purely by how much ink a glyph puts in a cell, which is right for
+ * haze — variety is the point there — but its middle is `\\ / < > ~ { }`, and a
+ * line drawn in those does not read as a fainter line, it reads as scratches
+ * and chain links. These eight read as one mark at eight weights, which is
+ * what a pencil does.
+ */
+export const ART_RAMP = ['.', ':', '-', '=', '+', '*', '#', '@'].map((c) => c.charCodeAt(0));
+
 /** Samples per cell, per axis. Nine samples is enough to hide the grid. */
 const SUB = 3;
 const WEIGHT = 1 / (SUB * SUB);
@@ -37,7 +49,10 @@ export type Shape = {
   /** 0..1 brightness of the region itself, before coverage. */
   tone: number;
   /**
-   * Stroke width in *cells*, not artwork pixels. Omit to fill instead.
+   * Line width in *cells*, not artwork pixels. Omit to fill instead.
+   *
+   * Also sets the width of an `edge`, where it is the thickness of the
+   * boundary band kept.
    *
    * Cells, because a line narrower than a cell does not render as a line: its
    * coverage is a fraction, and the compositor dilutes it into whatever it is
@@ -65,6 +80,22 @@ export type Shape = {
    * exactly where the car's nose should be.
    */
   edge?: boolean | 'outer';
+  /**
+   * Treat `d` as a list of points and light exactly the cell each falls in.
+   *
+   * Atmosphere: scree on a hill, chalk in the air, a crowd in the dark. The
+   * slide that works best on this page is the one with a plum branch shedding
+   * petals across the whole frame, and most of what it has that the others
+   * lacked is something in the empty parts of the picture.
+   */
+  specks?: boolean;
+  /**
+   * Which family of sheets the shape is coloured from. Bone by default.
+   *
+   * `plum` is act two's colour, reused for the few things on later slides that
+   * are alight rather than drawn — a lamp, a sprout, a sun.
+   */
+  hue?: 'bone' | 'plum';
 };
 
 export type Art = {
@@ -144,12 +175,18 @@ export class Painter {
   /** Reachable-from-outside mask and its worklist, for `edge: 'outer'`. */
   private flood: Uint8Array;
   private queue: Int32Array;
+  /** What the shape covered before it was eroded, so an edge can be thickened. */
+  private solid: Uint8Array;
   /** Rows touched by the shape being drawn, so clearing stays cheap. */
   private lo = 0;
   private hi = -1;
   private xs: number[] = [];
   /** Set by `draw`, so a mirrored box knows what to mirror about. */
   private artW = 0;
+  /** Whether the shape being drawn is plum rather than bone. */
+  private hot = 0;
+  /** Per cell: which family of sheets it was drawn from. */
+  private tint: Uint8Array;
 
   constructor(
     readonly cols: number,
@@ -162,18 +199,23 @@ export class Painter {
     this.rim = new Float32Array(cols * rows);
     this.flood = new Uint8Array(cols * rows);
     this.queue = new Int32Array(cols * rows);
+    this.solid = new Uint8Array(cols * rows);
+    this.tint = new Uint8Array(cols * rows);
   }
 
   clear(): void {
     this.tone.fill(0);
     this.cover.fill(0);
     this.drawn.fill(0);
+    this.tint.fill(0);
   }
 
   draw(art: Art, box: Box): void {
     this.artW = art.w;
     for (const s of art.shapes) {
-      if (s.edge) this.fillPath(s.d, s.tone, box, s.edge);
+      this.hot = s.hue === 'plum' ? 1 : 0;
+      if (s.specks) this.dots(s.d, s.tone, box);
+      else if (s.edge) this.fillPath(s.d, s.tone, box, s.edge, s.stroke ?? 1);
       else if (s.stroke) this.strokePath(s.d, s.stroke, s.tone, box, s.open === true);
       else this.fillPath(s.d, s.tone, box);
     }
@@ -186,13 +228,53 @@ export class Painter {
    * several loops and the holes come out for free — an annulus is just the
    * outer ring followed by the inner one, which is how the wheels are drawn.
    */
-  fillPath(d: readonly number[], tone: number, box: Box, edge: boolean | 'outer' = false): void {
+  fillPath(
+    d: readonly number[],
+    tone: number,
+    box: Box,
+    edge: boolean | 'outer' = false,
+    width = 1,
+  ): void {
     this.lo = 0;
     this.hi = -1;
     if (!this.raster(d, box)) return;
     if (edge === 'outer') this.keepSilhouette();
     else if (edge) this.keepEdge();
+    if (edge && width > 1) this.thicken(width);
     this.commit(tone, edge !== false);
+  }
+
+  /**
+   * Grows a one-cell boundary inward to `width` cells.
+   *
+   * Weight is most of what separates these drawings from the mark they follow.
+   * The mark is a band three cells across and it reads as drawn; a boundary is
+   * one cell across and reads as plotted. Grown inward rather than outward so
+   * a thicker line never makes the thing it outlines any bigger.
+   */
+  private thicken(width: number): void {
+    const { cols, scratch, rim, lo, hi } = this;
+    for (let n = 1; n < Math.round(width); n++) {
+      for (let r = lo; r <= hi; r++) {
+        for (let c = 0; c < cols; c++) {
+          const i = r * cols + c;
+          const v = scratch[i];
+          if (v > 0 || this.solid[i] === 0) {
+            rim[i] = v;
+            continue;
+          }
+          const up = r > lo ? scratch[i - cols] : 0;
+          const down = r < hi ? scratch[i + cols] : 0;
+          const left = c > 0 ? scratch[i - 1] : 0;
+          const right = c + 1 < cols ? scratch[i + 1] : 0;
+          rim[i] = Math.max(up, down, left, right) > 0 ? 1 : 0;
+        }
+      }
+      for (let r = lo; r <= hi; r++) {
+        const base = r * cols;
+        for (let c = 0; c < cols; c++) scratch[base + c] = rim[base + c];
+      }
+    }
   }
 
   /**
@@ -261,9 +343,37 @@ export class Painter {
    * squarely inside a cell, so its coverage comes out around a half, and half
    * coverage times full tone lands on a dim glyph on a dim sheet. Rendered
    * that way the R8's wheels were present in the buffer and invisible on the
-   * page. A line is not a shaded region: either it passes through a cell or it
-   * does not, and the cells it passes through get the line's own brightness.
+   * page.
+   *
+   * It is a floor, though, not a flattening. Promoted all the way to one, every
+   * line on the page comes out at exactly one weight and the drawings read as
+   * CAD output — which is precisely what the ikigai mark beside them does not
+   * do, because its ring band feathers and lands on three different sheets
+   * along its length. Keeping a third of the coverage variation buys that
+   * mottle back without letting any cell of a line fall below legible.
    */
+  /**
+   * Lights exactly one cell per point.
+   *
+   * Deliberately unsmoothed: a speck is one character, and rounding it to the
+   * nearest cell is the whole primitive. Antialiasing a dust mote across four
+   * cells at a quarter coverage each produces nothing you can see.
+   */
+  private dots(d: readonly number[], tone: number, box: Box): void {
+    const { cols, rows, scratch } = this;
+    this.lo = 0;
+    this.hi = -1;
+    for (let i = 0; i + 1 < d.length; i += 2) {
+      const x = box.flip ? box.col + (this.artW - d[i]) * box.scale : box.col + d[i] * box.scale;
+      const c = Math.round(x);
+      const r = Math.round(box.row + (d[i + 1] * box.scale) / box.aspect);
+      if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+      scratch[r * cols + c] = 1;
+      this.growShape(r, r);
+    }
+    if (this.hi >= this.lo) this.commit(tone, true);
+  }
+
   strokePath(d: readonly number[], cells: number, tone: number, box: Box, open: boolean): void {
     const n = d.length / 2;
     const last = open ? n - 1 : n;
@@ -302,7 +412,7 @@ export class Painter {
         const i = r * cols + c;
         const v = scratch[i];
         if (v <= 0) continue;
-        scratch[i] = v < 0.18 ? 0 : Math.min(1, v * 2.4);
+        scratch[i] = v < 0.18 ? 0 : Math.min(1, 0.66 + v * 0.72);
       }
     }
     this.commit(tone, true);
@@ -317,7 +427,11 @@ export class Painter {
    * so they are kept at their own coverage and give the line its weight back.
    */
   private keepEdge(): void {
-    const { cols, scratch, rim, lo, hi } = this;
+    const { cols, scratch, rim, solid, lo, hi } = this;
+    for (let r = lo; r <= hi; r++) {
+      const base = r * cols;
+      for (let c = 0; c < cols; c++) solid[base + c] = scratch[base + c] > AIR ? 1 : 0;
+    }
     const solidAt = (r: number, c: number): boolean =>
       r >= lo && r <= hi && c >= 0 && c < cols && scratch[r * cols + c] >= 0.55;
     for (let r = lo; r <= hi; r++) {
@@ -353,7 +467,11 @@ export class Painter {
    * outside". Flooding asks the question the eye asks.
    */
   private keepSilhouette(): void {
-    const { cols, scratch, rim, lo, hi } = this;
+    const { cols, scratch, rim, solid, lo, hi } = this;
+    for (let r = lo; r <= hi; r++) {
+      const base = r * cols;
+      for (let c = 0; c < cols; c++) solid[base + c] = scratch[base + c] > AIR ? 1 : 0;
+    }
     const w = cols;
     const h = hi - lo + 1;
     if (h <= 0) return;
@@ -439,20 +557,15 @@ export class Painter {
         this.tone[i] = this.tone[i] * (1 - a) + tone * a;
         this.cover[i] = this.cover[i] + a * (1 - this.cover[i]);
         this.drawn[i] = this.drawn[i] * (1 - a) + (line ? a : 0);
+        if (a > 0.5) this.tint[i] = this.hot;
         this.scratch[i] = 0;
       }
     }
   }
 
   /** Writes the finished drawing into the overlay through the density ramp. */
-  paint(
-    out: Overlay,
-    ramp: number[],
-    alpha: number,
-    prio: Uint8Array,
-    level: number,
-    gamma = 0.82,
-  ): void {
+  paint(out: Overlay, alpha: number, prio: Uint8Array, level: number, gamma = 0.82): void {
+    const ramp = ART_RAMP;
     const cells = this.cols * this.rows;
     for (let i = 0; i < cells; i++) {
       const cov = this.cover[i];
@@ -460,13 +573,32 @@ export class Painter {
       const v = this.tone[i] * cov;
       if (v < 0.02) continue;
       if (prio[i] > level) continue;
-      // Line cells take their glyph from coverage and their brightness from
-      // tone; fills take both from the product.
-      const ink = v + (cov - v) * this.drawn[i];
+      // A line cell is resolved from its tone alone; a fill cell from tone
+      // times coverage. Coverage decides only *whether* a line lights a cell,
+      // never how strongly — that was the fix that made the R8's wheels
+      // visible. But resolving a line from coverage instead, which is where
+      // that fix first landed, costs the drawings all their depth: every line
+      // comes out as a dense glyph and a dim one differs only in colour, so a
+      // far rope reads as near. From tone, a dim line is a sparse character —
+      // which is exactly how the plum branch's far twigs recede.
+      const ink = v + (this.tone[i] - v) * this.drawn[i];
       const g = Math.min(ramp.length - 1, Math.floor(Math.pow(Math.min(1, ink), gamma) * ramp.length));
       out.char[i] = ramp[g];
-      out.sheet[i] =
-        v > 0.82 ? Sheet.Display : v > 0.54 ? Sheet.Ink : v > 0.28 ? Sheet.Dim : Sheet.Muted;
+      // The plum family stops at Bloom rather than running up to Display. The
+      // flame uses Display as its core because the hottest part of a flame is
+      // near white, but a sprout or a sun that resolves to Display is simply
+      // bone, and the whole point of tinting it was that it is not.
+      out.sheet[i] = this.tint[i]
+        ? ink > 0.44
+          ? Sheet.Bloom
+          : Sheet.BloomDeep
+        : ink > 0.82
+          ? Sheet.Display
+          : ink > 0.54
+            ? Sheet.Ink
+            : ink > 0.28
+              ? Sheet.Dim
+              : Sheet.Muted;
       out.alpha[i] = Math.min(1, alpha * (0.42 + 0.58 * cov));
       prio[i] = level;
     }
