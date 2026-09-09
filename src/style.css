@@ -289,9 +289,11 @@ body.card #caret {
   opacity: 1;
 }
 
-/* Act two's line is ranged right against the mark's left edge; act three's sits
-   to the right of the car, so it ranges the other way. */
-#drive {
+/* The first line is ranged right against the mark's left edge, because it is
+   set against the mark rather than beside it. Every later slide puts its line
+   in a column to the right of the artwork, where a hard left edge reads
+   better than a ragged one. */
+.coda:not(#coda) {
   text-align: left;
 }
 

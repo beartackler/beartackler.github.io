@@ -185,5 +185,35 @@
       "you're not going fast enough."
     ],
     "credit": "mario andretti"
+  },
+  "sisyphus": {
+    "lines": [
+      "the struggle itself towards the heights",
+      "is enough to fill a man's heart.",
+      "one must imagine sisyphus happy."
+    ],
+    "credit": "albert camus · the myth of sisyphus, 1942"
+  },
+  "pandora": {
+    "lines": [
+      "only hope remained there",
+      "in an unbreakable home within,",
+      "under the rim of the great jar."
+    ],
+    "credit": "hesiod · works and days, c. 700 bc"
+  },
+  "walle": {
+    "lines": [
+      "i don't want to survive.",
+      "i want to live."
+    ],
+    "credit": "captain mccrea · wall·e, 2008"
+  },
+  "dorian": {
+    "lines": [
+      "it is the spectator, and not life,",
+      "that art really mirrors."
+    ],
+    "credit": "oscar wilde · the picture of dorian gray, 1891"
   }
 }

@@ -54,16 +54,36 @@ export type Box = {
   scale: number;
   /** Cell height ÷ cell width. */
   aspect: number;
+  /** Mirror horizontally. The car is drawn nose-right so its flames trail
+      away from the column the closing line sits in. */
+  flip?: boolean;
 };
 
 /** Fits an artwork inside a cell box, preserving its aspect ratio. */
-export function fit(art: Art, cols: number, rows: number, cx: number, cy: number, aspect: number): Box {
+export function fit(
+  art: Art,
+  cols: number,
+  rows: number,
+  cx: number,
+  cy: number,
+  aspect: number,
+  flip = false,
+): Box {
   const scale = Math.min(cols / art.w, (rows * aspect) / art.h);
   return {
     col: cx - (art.w * scale) / 2,
     row: cy - (art.h * scale) / aspect / 2,
     scale,
     aspect,
+    flip,
+  };
+}
+
+/** Where an artwork-space point lands on the plane, for hanging things off it. */
+export function at(art: Art, box: Box, x: number, y: number): { c: number; r: number } {
+  return {
+    c: box.flip ? box.col + (art.w - x) * box.scale : box.col + x * box.scale,
+    r: box.row + (y * box.scale) / box.aspect,
   };
 }
 
@@ -85,6 +105,8 @@ export class Painter {
   private lo = 0;
   private hi = -1;
   private xs: number[] = [];
+  /** Set by `draw`, so a mirrored box knows what to mirror about. */
+  private artW = 0;
 
   constructor(
     readonly cols: number,
@@ -101,6 +123,7 @@ export class Painter {
   }
 
   draw(art: Art, box: Box): void {
+    this.artW = art.w;
     for (const s of art.shapes) {
       if (s.stroke) this.strokePath(s.d, s.stroke, s.tone, box, s.open === true);
       else this.fillPath(s.d, s.tone, box);
@@ -118,7 +141,10 @@ export class Painter {
     const n = d.length / 2;
     if (n < 3) return;
     const { cols, rows } = this;
-    const sxOf = (i: number) => (box.col + d[i * 2] * box.scale) * SUB;
+    const sxOf = (i: number) =>
+      (box.flip
+        ? box.col + (this.artW - d[i * 2]) * box.scale
+        : box.col + d[i * 2] * box.scale) * SUB;
     const syOf = (i: number) => (box.row + (d[i * 2 + 1] * box.scale) / box.aspect) * SUB;
 
     let top = Infinity;

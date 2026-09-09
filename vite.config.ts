@@ -56,7 +56,7 @@ function resumeDocument(): Plugin {
           .map(([k, v]: [string, string]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
           .join('')}</dl>
       </section>
-      <footer>${[data.coda, data.drive]
+      <footer>${QUOTES.map((k: string) => data[k])
         .map(
           (q: { lines: string[]; credit: string }) =>
             `<blockquote>${q.lines.map(esc).join(' ')}</blockquote>
@@ -74,7 +74,7 @@ function resumeDocument(): Plugin {
       <blockquote>${q.lines.map((l: string) => `<span>${esc(l)}</span>`).join('')}</blockquote>
       <figcaption>${esc(q.credit)}</figcaption>
     </figure>`;
-      const coda = quote('coda', data.coda) + quote('drive', data.drive);
+      const coda = QUOTES.map((k: string) => quote(k, data[k])).join('');
 
       const head = `
     <meta name="description" content="${esc(p.summary)}" />
@@ -112,6 +112,15 @@ function resumeDocument(): Plugin {
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 }
+
+/**
+ * The gallery's closing lines, in running order.
+ *
+ * One list, read by both the visual figures and the semantic footer, so a new
+ * slide cannot end up drawn but unreadable — or credited in the document and
+ * missing from the page.
+ */
+const QUOTES = ['coda', 'drive', 'sisyphus', 'pandora', 'walle', 'dorian'];
 
 export default defineConfig({
   plugins: [resumeDocument()],

@@ -1,10 +1,14 @@
 import './style.css';
-import { Atlas, Sheet, type Palette } from './atlas';
+import { Atlas, type Palette } from './atlas';
 import { Blossom } from './blossom';
 import { Field } from './field';
 import { CELL_ASPECT, compose, composeCard, type Plane } from './layout';
 import { Clearance, MarkField, markExtent, SPREAD } from './mark';
-import { R8, type Emitter } from './r8';
+import { at, fit, Painter } from './art';
+import { plume, type Emitter } from './flame';
+import { activeScene, nextRest, phaseOf, RESTING, SCENES, SPAN, type Phase } from './scenes';
+import { GALLERY, PANDORA_MOUTH } from './slides/gallery';
+import { PIPES, R8_ART } from './slides/r8';
 import { Renderer, type Overlay } from './render';
 
 const IDLE_HINT = 3000;
@@ -17,20 +21,6 @@ const PULSE_PERIOD = 2.9;
 /** Fraction of the page you must uncover by hand before the mark appears. */
 const MARK_AT = 0.9;
 const MARK_DRAW_SECONDS = 4.2;
-/** How much of a viewport the second act takes to play out. */
-const JOURNEY_SPAN = 1.35;
-/**
- * And the third: the rings unfold, the car arrives, turns, and lights up.
- *
- * Longer than act two because it has four beats rather than two, and because
- * the turn needs room — rushed, a rotation reads as a glitch rather than a
- * camera move.
- */
-const DRIVE_SPAN = 2.05;
-/** Where act two ends, on the 0..1 parameter the two acts share. */
-const ACT_TWO = JOURNEY_SPAN / (JOURNEY_SPAN + DRIVE_SPAN);
-/** How far round the car turns: past its tail, so one flank stays in view. */
-const TURN_TO = 200;
 /** Fraction of the plane the plum branch claims; the mark gets the rest. */
 const BLOSSOM_BAND = 0.38;
 /**
@@ -49,8 +39,19 @@ const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const nudge = document.getElementById('nudge') as HTMLElement;
 const caret = document.getElementById('caret') as HTMLElement;
-const coda = document.getElementById('coda') as HTMLElement;
-const drive = document.getElementById('drive') as HTMLElement;
+/**
+ * One closing line per scene, looked up by the key the scene names.
+ *
+ * They used to be two module-scope handles with two hand-written placement
+ * rules; a gallery needs a list, or every new slide means editing four files
+ * that all have to agree.
+ */
+const quotes: Record<string, HTMLElement> = {};
+for (const sc of SCENES) {
+  if (!sc.quote) continue;
+  const el = document.getElementById(sc.quote);
+  if (el) quotes[sc.quote] = el as HTMLElement;
+}
 const pct = document.getElementById('pct') as HTMLElement;
 const chrome = document.querySelector('.chrome') as HTMLElement;
 
@@ -137,8 +138,7 @@ let scrollRaw = 0;
 let scrollP = 0;
 let blossom: Blossom | null = null;
 let overlay: Overlay | null = null;
-let car: R8 | null = null;
-let emitters: Emitter[] = [];
+let painter: Painter | null = null;
 /** Priority per overlay cell, so the flames can take cells off the car. */
 let overlayPrio = new Uint8Array(0);
 
@@ -220,8 +220,7 @@ function build(): void {
   markMask = new Uint8Array(cells);
   painted = new Uint8Array(cells);
   blossom = new Blossom(plane.cols, plane.rows, cellH / cellW);
-  car = new R8(plane.cols, plane.rows);
-  emitters = [];
+  painter = new Painter(plane.cols, plane.rows);
   overlayPrio = new Uint8Array(cells);
   overlay = {
     char: new Uint16Array(cells),
@@ -293,21 +292,24 @@ function placeChrome(): void {
   const room = Math.max(8, bottom - top);
   const extent = Math.min(plane.cols * 0.86, (room - 1) * aspect);
   const markLeft = originX + (plane.cols / 2 - extent / 2 - 4) * cellW;
-  coda.style.right = `${Math.max(cellW * 2, innerWidth - markLeft)}px`;
-  coda.style.top = `${((top + bottom) / 2) * cellH}px`;
+  quotes.coda.style.right = `${Math.max(cellW * 2, innerWidth - markLeft)}px`;
+  quotes.coda.style.top = `${((top + bottom) / 2) * cellH}px`;
 
-  // Act three's line sits in the column the car leaves free when it settles
-  // left, at the height of the car rather than the badge above it.
-  const carTop = badgeRow() + (plane.cols * BADGE_WIDTH) / 6.5 / aspect + 2;
-  const carBottom = plane.rows - chromeRows - 1;
-  drive.style.left = `${originX + (plane.cols * (0.5 + CAR_SHIFT) + carWidth() / 2 + 3) * cellW}px`;
-  drive.style.top = `${(carTop + (carBottom - carTop) * 0.44) * cellH}px`;
+  // Every other scene's line shares one position: ranged left, in the column
+  // to the right of the artwork, at the artwork's own height. A gallery wants
+  // its caption in the same place on every slide — moving it per scene reads
+  // as drift rather than as composition.
+  const artTop = badgeRow() + (plane.cols * BADGE_WIDTH) / 6.5 / aspect + 2;
+  const artBottom = plane.rows - chromeRows - 1;
+  for (const [key, el] of Object.entries(quotes)) {
+    if (key === 'coda') continue;
+    el.style.left = `${originX + plane.cols * 0.68 * cellW}px`;
+    el.style.right = 'auto';
+    el.style.top = `${(artTop + (artBottom - artTop) * 0.52) * cellH}px`;
+  }
 }
 
 /** The car's final width in cells; the quote is placed off its right edge. */
-function carWidth(): number {
-  return plane.cols * 0.58;
-}
 
 /** One transparent anchor per link run, laid out in plane coordinates. */
 function buildHotspots(): void {
@@ -338,24 +340,21 @@ function buildHotspots(): void {
 
 /** Scrolling exists only while there is a second act to scroll through. */
 function journeySpan(): number {
-  return markOn && posterFits && !cardMode ? innerHeight * (JOURNEY_SPAN + DRIVE_SPAN) : 0;
+  return markOn && posterFits && !cardMode ? innerHeight * SPAN : 0;
 }
 
-/**
- * Each act's own 0..1, carved out of the shared scroll parameter.
- *
- * Every threshold in act two was tuned against a progress value that reached
- * 1 at its end, so rather than rescale all of them, act two keeps its own
- * clamped parameter and act three gets a second one that starts where the
- * first finishes.
- */
-let act2P = 0;
-let act3P = 0;
+/** Every scene's phase for the current scroll position, recomputed per frame. */
+let phases: Phase[] = SCENES.map(() => RESTING);
+let sceneAt = 0;
 
 function splitScroll(): void {
-  act2P = Math.min(1, scrollP / ACT_TWO);
-  act3P = Math.max(0, (scrollP - ACT_TWO) / (1 - ACT_TWO));
+  phases = SCENES.map((_, i) => phaseOf(i, scrollP));
+  sceneAt = activeScene(scrollP);
 }
+
+/** Named lookups, so the scenes that main.ts drives directly stay readable. */
+const IKIGAI = SCENES.findIndex((s) => s.id === 'ikigai');
+const CAR = SCENES.findIndex((s) => s.id === 'r8');
 
 function syncScrollRange(): void {
   const span = journeySpan();
@@ -390,7 +389,13 @@ function followScroll(dt: number): void {
   }
   // Proportional while there is distance to cover, with a floor so the last
   // sliver closes instead of trailing an exponential tail for a full second.
-  const step = Math.min(far, Math.max(far * Math.min(1, dt / SCROLL_LAG), dt * 0.4));
+  //
+  // The floor is expressed per viewport, not per journey. It used to be a flat
+  // 0.4 of the whole parameter per second, which meant its size in pixels grew
+  // with the timeline: at six scenes instead of two it exceeded a wheel notch,
+  // and the spring that exists to stop the mark stepping became a snap.
+  const floor = (dt * 1.4) / SPAN;
+  const step = Math.min(far, Math.max(far * Math.min(1, dt / SCROLL_LAG), floor));
   scrollP += Math.sign(gap) * step;
 }
 
@@ -476,10 +481,9 @@ function resetMark(): void {
   scrollRaw = 0;
   blossomP = 0;
   document.body.classList.remove('act2', 'act3');
-  coda.classList.remove('on');
-  drive.classList.remove('on');
-  act2P = 0;
-  act3P = 0;
+  for (const el of Object.values(quotes)) el.classList.remove('on');
+  phases = SCENES.map(() => RESTING);
+  sceneAt = 0;
   painted.fill(0);
   markMask.fill(0);
   field.floor.fill(0);
@@ -513,8 +517,10 @@ function stepMark(dt: number): void {
   const aspect = cellH / cellW;
   // Position leaves the wordmark promptly and settles; scale eases at both
   // ends. Two curves, because "detaching" and "growing" want different feels.
-  const move = 1 - (1 - act2P) * (1 - act2P);
-  const e = smooth(act2P);
+  const ik = phases[IKIGAI];
+  const car = phases[CAR];
+  const move = 1 - (1 - ik.in) * (1 - ik.in);
+  const e = smooth(ik.in);
   // Small enough to sit in the band the composition left for it, which is
   // also what makes it read as granular before it grows.
   const rest = plane.markRest;
@@ -541,13 +547,20 @@ function stepMark(dt: number): void {
   // the whole page to become a badge over the car. The morph leads the move
   // slightly, so the arrangement has changed by the time it settles: seeing
   // it unfold is the point, and it is lost if it happens while shrinking.
-  const formation = smooth((act3P - 0.02) / 0.26);
-  const settle = smooth(act3P / 0.34);
+  // The rings unfold as the car scene arrives, and settle into a badge over
+  // the first half of it, so the change of arrangement is over before the
+  // change of size — seeing the diamond open out is the point, and it is lost
+  // if it happens while shrinking.
+  const formation = smooth(car.in / 0.55);
+  const settle = smooth(car.in / 0.7);
   const badgeR = (plane.cols * BADGE_WIDTH) / (2 * (1 + 1.5 * 1.5));
   const r = actTwoR + (badgeR - actTwoR) * settle;
   cy += (badgeRow() - cy) * settle;
-  cx +=
-    (plane.cols / 2 + plane.cols * CAR_SHIFT * smooth((act3P - 0.80) / 0.16) - cx) * settle;
+  cx += (plane.cols / 2 - cx) * settle;
+
+  // Past the car scene the mark has done its work and the gallery moves on.
+  const present = Math.max(phases[IKIGAI].on, phases[CAR].on);
+  if (present <= 0.01) return;
 
   markMask.fill(0);
   markField.evaluate({
@@ -564,21 +577,21 @@ function stepMark(dt: number): void {
     // Feathered while it is in motion, crisp at either end of the journey:
     // a hard ring band pops cells in and out a whole glyph at a time as it
     // grows, and the feather turns each of those pops into a fade.
-    soft: Math.max(4 * act2P * (1 - act2P), 4 * settle * (1 - settle)),
+    soft: Math.max(4 * ik.in * (1 - ik.in), 4 * settle * (1 - settle)),
     // A generous halo while the mark sits beside the wordmark; hairline gaps
     // while it travels through a page that is still legible; nothing to
     // respect once the resume has gone.
     clearance:
-      act2P < 0.06 ? Clearance.Wide : renderer.fade > 0.01 ? Clearance.Tight : Clearance.None,
-    painted: act2P < 0.03 ? painted : null,
+      ik.in < 0.06 ? Clearance.Wide : renderer.fade > 0.01 ? Clearance.Tight : Clearance.None,
+    painted: ik.in < 0.03 ? painted : null,
     // A safelight glow behind the resume, full ink once it is the whole page.
-    base: 0.46 + 0.42 * e,
-    paintedBase: 0.72 + 0.16 * e,
+    base: (0.46 + 0.42 * e) * present,
+    paintedBase: (0.72 + 0.16 * e) * present,
   });
 
   // Sweeping the lantern along a ring burns that stretch of it in, but only
   // while the mark is at rest; a growing ring has no fixed cells to paint.
-  if (act2P < 0.03) {
+  if (ik.in < 0.03) {
     let total = 0;
     let done = 0;
     for (let i = 0; i < markMask.length; i++) {
@@ -606,15 +619,16 @@ function badgeRow(): number {
 
 function stepBlossom(): void {
   if (!overlay || !blossom) return;
-  blossomP = smooth((scrollP - 0.26 * ACT_TWO) / (0.69 * ACT_TWO));
-  overlay.alpha.fill(0);
-  overlayPrio.fill(0);
+  // Off the ikigai scene's own entrance, not off raw scroll: the branch used
+  // to be timed against the split point between two acts, so any change to
+  // the running order silently retimed it.
+  blossomP = smooth((phases[IKIGAI].in - 0.26) / 0.69);
   if (blossomP <= 0) return;
   blossom.render(overlay, blossomP);
   // The branch clears out before the car arrives. Each act takes the page
   // from the last one rather than sharing it; a plum branch over a supercar
   // is two ideas at once, which is none.
-  const gone = smooth(act3P / 0.20);
+  const gone = phases[IKIGAI].out;
   if (gone > 0) {
     for (let i = 0; i < overlay.alpha.length; i++) overlay.alpha[i] *= 1 - gone;
   }
@@ -623,56 +637,115 @@ function stepBlossom(): void {
 /** Fraction of the plane's width the Audi rings settle at. */
 const BADGE_WIDTH = 0.40;
 /**
- * How far left the whole group drifts once the flames are lit.
+ * Fraction of the plane the car spans.
  *
- * The car is centred for the head-on shot and the turn, because that is the
- * hero framing and anything off-centre there looks like a mistake. The quote
- * needs a column of its own, though, and a 34-character line will not fit in
- * the margin a centred car leaves — so at the very end the group settles left
- * and opens one. It is the last move of the page, and it is small.
+ * It sits left of centre rather than centred, because the plume trails off its
+ * tail and the closing line needs a column of its own on the right. A centred
+ * car leaves a margin too narrow for either.
  */
-const CAR_SHIFT = -0.085;
+const CAR_WIDTH = 0.5;
+
+/** Where the car's artwork lands, so the flames and the quote can hang off it. */
+let carBox: ReturnType<typeof fit> | null = null;
 
 function stepCar(now: number): void {
-  if (!overlay || !car || act3P <= 0.22) {
-    emitters = [];
-    return;
-  }
+  const ph = phases[CAR];
+  carBox = null;
+  if (!overlay || !painter || !ph.live) return;
   const aspect = cellH / cellW;
-  // Arrive, hold, turn, burn. The hold matters: the brief asked for the car
-  // to face the camera *first*, and without a beat of stillness between
-  // arriving and turning the two moves read as one continuous slide.
-  const arrive = smooth((act3P - 0.24) / 0.20);
-  const turn = smooth((act3P - 0.55) / 0.31);
-  const heat = smooth((act3P - 0.80) / 0.17);
+  const arrive = smooth((ph.in - 0.34) / 0.42);
+  // The flames light at the end of the entrance and keep burning through the
+  // hold — they are the one thing on the page that is alive while it rests.
+  const heat = smooth((ph.in - 0.72) / 0.28) * ph.on;
+  if (arrive <= 0.01) return;
 
   const badgeBottom = badgeRow() + (plane.cols * BADGE_WIDTH) / 6.5 / aspect;
-  const topRow = badgeBottom + 2;
-  const bottomRow = plane.rows - chromeRows - 1;
-  // Biased up rather than centred in its box: the plumes need the room below
-  // it, and a car sitting dead centre leaves a dead band under the badge.
-  const cy = topRow + (bottomRow - topRow) * 0.44;
-
-  const shift = plane.cols * CAR_SHIFT * smooth((act3P - 0.80) / 0.16);
-  emitters = car.render({
-    azimuth: TURN_TO * turn,
-    // Low, and barely rising. Looking down on a mid-engine car flattens its
-    // deck into a plate and throws away the silhouette that identifies it.
-    elevation: 8 + 4 * turn,
-    cx: plane.cols / 2 + shift,
-    cy,
-    // Grows a little as it arrives, so it reads as coming toward you rather
-    // than fading up in place.
-    width: carWidth() * (0.90 + 0.10 * arrive),
-    height: (bottomRow - topRow) * (0.86 + 0.12 * arrive),
+  const top = badgeBottom + 2;
+  const bottom = plane.rows - chromeRows - 1;
+  // Nose to the right, so the plume trails left and leaves the right-hand
+  // column clear for the closing line.
+  carBox = fit(
+    R8_ART,
+    plane.cols * CAR_WIDTH,
+    (bottom - top) * 0.86,
+    plane.cols * 0.4,
+    (top + bottom) / 2,
     aspect,
+    true,
+  );
+
+  painter.clear();
+  painter.draw(R8_ART, carBox);
+  painter.paint(overlay, atlas.ramp, arrive * ph.on, overlayPrio, 1);
+
+  const emitters: Emitter[] = PIPES.map(([x, y]) => {
+    const q = at(R8_ART, carBox!, x, y);
+    return { c: q.c, r: q.r, dc: -1, dr: 0.1 };
   });
-  car.paint(overlay, atlas.ramp, arrive, overlayPrio, 1);
-  car.flames(overlay, emitters, heat, reduced.matches ? 0 : now / 1000, overlayPrio, 2, {
-    core: Sheet.Display,
-    mid: Sheet.Bloom,
-    deep: Sheet.BloomDeep,
-  });
+  plume(
+    overlay,
+    plane.cols,
+    plane.rows,
+    emitters,
+    heat,
+    reduced.matches ? 0 : now / 1000,
+    overlayPrio,
+    2,
+    undefined,
+    plane.cols * 0.2,
+    plane.cols * 0.045,
+  );
+}
+
+/**
+ * The slides after the car: one artwork each, drawn through the same painter.
+ *
+ * They share a frame — left of centre, the full height between the chrome and
+ * the top — so the closing line always lands in the same column and the
+ * gallery reads as a sequence rather than as a set of one-offs.
+ */
+function stepSlides(now: number): void {
+  if (!overlay || !painter) return;
+  const aspect = cellH / cellW;
+  const top = 3;
+  const bottom = plane.rows - chromeRows - 2;
+  for (let i = 0; i < SCENES.length; i++) {
+    const art = GALLERY[SCENES[i].id];
+    if (!art) continue;
+    const ph = phases[i];
+    if (!ph.live || ph.on <= 0.01) continue;
+    const box = fit(
+      art,
+      plane.cols * 0.44,
+      (bottom - top) * 0.94,
+      plane.cols * 0.36,
+      (top + bottom) / 2,
+      aspect,
+    );
+    painter.clear();
+    painter.draw(art, box);
+    painter.paint(overlay, atlas.ramp, ph.on, overlayPrio, 1);
+
+    if (SCENES[i].id === 'pandora') {
+      // What escapes the jar is the exhaust plume again, turned upright. Two
+      // slides apart, the same fire: the one that comes out of a supercar
+      // because you asked it to, and the one that does not go back in.
+      const q = at(art, box, PANDORA_MOUTH[0], PANDORA_MOUTH[1]);
+      plume(
+        overlay,
+        plane.cols,
+        plane.rows,
+        [{ c: q.c, r: q.r, dc: 0.32, dr: -1 }],
+        ph.on,
+        reduced.matches ? 0 : now / 1000,
+        overlayPrio,
+        2,
+        undefined,
+        plane.rows * 0.9,
+        plane.cols * 0.09,
+      );
+    }
+  }
 }
 
 // ── The counter ────────────────────────────────────────────────────────────
@@ -748,7 +821,7 @@ function updatePct(): void {
     if (plane.isWord[k] && runInk[k] > 0.35) seen++;
   }
   uncovered = seen;
-  if (act2P < 0.02) setReadout(seen, plane.wordCount, 'words');
+  if (phases[IKIGAI].in < 0.02) setReadout(seen, plane.wordCount, 'words');
 
   if (!markOn && plane.wordCount && seen >= plane.wordCount * MARK_AT) {
     unlockMark();
@@ -783,7 +856,7 @@ function frame(now: number): void {
   const idle = now - lastInput;
   const ghostAfter = coarse.matches ? IDLE_GHOST / 2 : IDLE_GHOST;
   // The page also stops reading itself once there is nothing left to read.
-  const reading = !reduced.matches && idle > ghostAfter && act2P < 0.02 && !markComplete;
+  const reading = !reduced.matches && idle > ghostAfter && phases[IKIGAI].in < 0.02 && !markComplete;
   const want = markComplete ? 0 : 1;
   lanternGain += Math.sign(want - lanternGain) * Math.min(Math.abs(want - lanternGain), dt / 1.5);
   const booting = !touched && !reading && !reduced.matches;
@@ -813,7 +886,7 @@ function frame(now: number): void {
   }
 
   const aim = reading ? readerAt(dt) : target;
-  if (aim && !reduced.matches && act2P < 0.5) {
+  if (aim && !reduced.matches && phases[IKIGAI].in < 0.5) {
     if (!cursor) cursor = { ...aim };
     const dc = aim.c - cursor.c;
     const dr = aim.r - cursor.r;
@@ -845,9 +918,16 @@ function frame(now: number): void {
   // than letting its wake fill in as a disc.
   if (!reduced.matches) field.step(dt, hasChar, !booting, booting ? 0.3 : undefined);
   lightHoveredLink();
+  // Cleared here rather than inside the branch: any scene that draws without
+  // one would otherwise inherit the last frame's priorities.
+  if (overlay) {
+    overlay.alpha.fill(0);
+    overlayPrio.fill(0);
+  }
   stepMark(dt);
   stepBlossom();
   stepCar(now);
+  stepSlides(now);
   applyJourney();
   field.resolveRuns(plane.runId, dt);
   renderer.draw(originX, originY, bg);
@@ -863,37 +943,43 @@ function frame(now: number): void {
 
 /** Everything the scroll position drives, in one place. */
 function applyJourney(): void {
+  const ik = phases[IKIGAI];
   // The resume — and with it every amber thing on the page — is gone before
-  // the blossom is legible, so the two palettes hand over rather than
-  // overlap. The mark keeps growing across the gap, so the beat of near-empty
-  // screen between the acts reads as a breath instead of a dead zone.
-  renderer.fade = 1 - smooth(act2P / 0.32);
-  renderer.tint = smooth((act2P - 0.04) / 0.24);
-  // Don't leave invisible links clickable once the resume has faded. The
-  // class goes on the container but the rule it enables targets the anchors,
-  // because that is the only level at which it actually takes effect.
-  hotspots.classList.toggle('off', act2P > 0.25);
+  // the blossom is legible, so the two palettes hand over rather than overlap.
+  renderer.fade = 1 - smooth(ik.in / 0.32);
+  renderer.tint = smooth((ik.in - 0.04) / 0.24);
+  // Don't leave invisible links clickable once the resume has faded. The class
+  // goes on the container but the rule it enables targets the anchors, because
+  // that is the only level at which it actually takes effect.
+  hotspots.classList.toggle('off', ik.in > 0.25);
   // Wait for the rings to finish drawing themselves before asking for more.
-  nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.6 && act2P < 0.05);
+  nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.6 && ik.in < 0.05);
 
-  // The readout stays through the second act rather than fading out. Without
-  // it there is nothing on screen that says how far the journey runs or that
-  // it ends, which is the one thing scrolling into it does not tell you.
-  const inAct2 = act2P > 0.02;
-  document.body.classList.toggle('act2', inAct2 && act3P < 0.12);
-  document.body.classList.toggle('act3', act3P >= 0.12);
-  if (inAct2 && act3P < 0.24 && blossom) {
-    setReadout(blossom.opened(blossomP), blossom.total, 'blossoms');
-  } else if (act3P >= 0.24) {
-    // Act three counts degrees through the turn. Same reels, same promise:
-    // a number with a denominator, so the scroll always says where it ends.
-    setReadout(Math.round(TURN_TO * smooth((act3P - 0.55) / 0.31)), TURN_TO, 'degrees');
+  document.body.classList.toggle('act2', ik.on > 0.02 && phases[CAR].in < 0.12);
+  document.body.classList.toggle('act3', phases[CAR].in >= 0.12);
+
+  // The readout counts slides through the gallery, and words before it. It
+  // used to count degrees of a rotation that no longer exists, and before that
+  // blossoms — but the promise has always been the same one: a number with a
+  // denominator, so the scroll says how far this runs and that it ends.
+  //
+  // Guarded, because act one's counter is the discovery mechanic. Setting the
+  // slide number unconditionally overwrote the word count on every frame and
+  // quietly deleted the only feedback the uncovering game has.
+  if (ik.in > 0.02) setReadout(sceneAt + 1, SCENES.length, 'slides');
+
+  // Each scene owns its own closing line, and shows it for the whole of its
+  // hold. That is the entire point of the hold: the line's fade is 1.4s, and
+  // it used to be given about a fifth of that before the next act took the
+  // page, so at any real scrolling speed it was never once seen finished.
+  for (let i = 0; i < SCENES.length; i++) {
+    const q = SCENES[i].quote;
+    if (!q) continue;
+    const el = quotes[q];
+    if (!el) continue;
+    const ph = phases[i];
+    el.classList.toggle('on', ph.in >= 1 && ph.out < 0.06);
   }
-
-  // Musashi lands once the branch and the mark have both arrived, and clears
-  // before the rings unfold; Andretti lands once the car is lit.
-  coda.classList.toggle('on', blossomP >= 1 && act2P > 0.93 && act3P < 0.06);
-  drive.classList.toggle('on', act3P > 0.93);
 }
 
 /**
@@ -919,7 +1005,7 @@ function litChrome(now: number, dt: number): void {
 /** A hovered link lights whole, with a row of haze under it as an underline. */
 function lightHoveredLink(): void {
   const h = renderer.hot;
-  if (!h || act2P > 0.25) return;
+  if (!h || phases[IKIGAI].in > 0.25) return;
   for (let c = h.col; c < h.col + h.len; c++) {
     field.light[h.row * plane.cols + c] = 1;
     if (h.row + 1 < plane.rows) {
@@ -966,12 +1052,17 @@ function revealAll(): void {
 addEventListener('keydown', (e) => {
   if (cardMode || e.metaKey || e.ctrlKey || e.altKey) return;
 
-  // Space reveals while anything is still hidden; once it is all up, hand the
-  // key back to the browser so it pages through the second act.
+  // Space reveals while anything is still hidden. Once it is all up it pages
+  // the gallery, landing in the middle of each hold — the one place in the
+  // timeline guaranteed to be a finished composition.
   if (e.key === ' ' && !(e.target as HTMLElement)?.closest('button')) {
-    if (uncovered >= plane.wordCount) return;
     e.preventDefault();
-    revealAll();
+    if (uncovered < plane.wordCount) {
+      revealAll();
+      return;
+    }
+    const span = journeySpan();
+    if (span > 0) scrollTo({ top: nextRest(scrollP, e.shiftKey ? -1 : 1) * span, behavior: 'smooth' });
     return;
   }
   if (e.key === 'r' || e.key === 'R') {

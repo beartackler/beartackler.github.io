@@ -13,27 +13,40 @@ Uncover the page and four rings — the ikigai diagram — draw themselves in th
 middle of it. Sweeping the lantern along a ring burns that stretch in. One word
 appears at the bottom of the screen: `scroll`.
 
-That is the second act. Scrolling fades the resume out, carries the mark down
-to the middle of the screen and grows it until it fills the page, and grows a
-plum branch in across the top — black, bone white and plum, nothing else. The
-counter in the corner stays, and switches from words uncovered to blossoms
-open, so there is always something on screen saying how far this runs and that
-it ends. When both have arrived, one line is set against the mark.
+That is the way into a gallery of six slides. Each one is an image made of
+characters and a line set beside it:
 
-Keep scrolling and the four rings unfold: the ikigai diagram and the Audi
-rings are the same four circles, one arranged as a diamond and one as a row, so
-the change is an interpolation of centres rather than a dissolve. The branch
-clears, the rings settle into a badge, and an R8 arrives head-on, holds, turns
-until its exhausts come round, and lights them. A second line is set beside it.
+1. the ikigai mark and a plum branch — Musashi
+2. the four rings unfolding into the Audi rings, and an R8 with its exhaust
+   alight — Andretti
+3. a boulder, a slope, a man — Camus
+4. a jar with everything already out of it — Hesiod
+5. a robot holding the last plant on Earth — Wall·E
+6. an empty portrait frame — Wilde
+
+The rings and the Audi badge are the same four circles, one arranged as a
+diamond and one as a row, so that change is an interpolation of centres rather
+than a dissolve — nothing appears or disappears, and the two marks turn out to
+have been the same object.
+
+**Every slide holds.** Each scene owns three beats — enter, hold, exit — and
+nothing driven by scroll changes during the hold. That is not a detail; it is
+the whole structure. The page used to be one continuous morph, and its finished
+compositions lasted about a twentieth of the scroll each: less time than their
+own 1.4-second fade, so at any real scrolling speed you never once saw the
+thing it had spent a viewport and a half assembling.
 
 Every part of it is a pure function of scroll position, so scrolling back up
 puts the resume back exactly as it was, mark and all. The journey follows the
-scroll with a spring rather than tracking it directly: a wheel notch is a
-jump, and the mark is rasterised to whole cells, so tracking `scrollY` made it
-advance in visible steps.
+scroll with a spring rather than tracking it directly: a wheel notch is a jump,
+and the mark is rasterised to whole cells, so tracking `scrollY` made it
+advance in visible steps. `space` pages between slides, landing in the middle
+of each hold — the one place in the timeline guaranteed to be a finished
+composition.
 
-Nobody is trapped in the game. `space` lights the whole thing, `resume` is the
-PDF, and the full resume is in the DOM at all times for screen readers,
+Nobody is trapped in the game. `space` lights the whole thing while anything is
+still hidden, `resume` is the PDF, and the full resume — with every one of the
+six lines and its attribution — is in the DOM at all times for screen readers,
 crawlers and `noscript`.
 
 A touch screen has no cursor, so it gets a card instead of the page: the
@@ -64,18 +77,24 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   scroll position at which it appears, which is what makes the growth
   reversible. Amplitudes are fractions of the band it occupies rather than
   fixed row counts, so it fills the top of any viewport.
-- **`src/r8.ts`** — the car, which is geometry rather than a picture. The brief
-  was that it faces the camera and then turns to show its exhausts, and two
-  drawn frames cross-faded would be a dissolve between two pictures — the thing
-  that reads as fake when the shape underneath is meant to be solid. So it is a
-  lofted body of eighteen cross-sections, four wheels, a z-buffer and Gouraud
-  shading resolved through the same density ramp as the haze. Wheel arches are
-  holes punched in the loft, because a closed tube is wider than its own tyres
-  at every height and no amount of tucking will show a wheel through one. The
-  flames are emitted in screen space along the direction the renderer says each
-  pipe is pointing, so they swing round with the car for free, and they
-  depth-test against it, so while the car is still head-on its own bodywork
-  hides them.
+- **`src/scenes.ts`** — the timeline. Beats are measured in viewports, so a slide
+  takes the same fraction of a scroll gesture on any screen.
+- **`src/art.ts`** — one renderer for every drawn thing: filled polygons and
+  stroked polylines, scanline-rasterised with subsampled coverage and resolved
+  through the same measured density ramp as the haze. Six slides drawn six ways
+  would look like six projects. Stroke widths are given in *cells*, not artwork
+  pixels — a line thinner than a cell is not a line, it is a fraction of
+  coverage that the compositor dilutes into whatever it is drawn over.
+- **`src/slides/r8.ts`** — the car, traced from a dimensioned CAD side elevation
+  rather than modelled. The drawing is 949 × 269, aspect 3.528; a real R8 is
+  4431 × 1252 mm, aspect 3.539 — within 0.3%, so tracing it gives proportions
+  that are correct rather than plausible. `tools/fidelity.mjs` scores the result
+  against the source at 97.5% intersection-over-union. It is drawn as line work,
+  not shaded tone: on a black page a black tyre and near-black glass are not
+  dark details, they are the background, and the first attempt produced a car
+  with no wheels.
+- **`src/flame.ts`** — the exhaust plume, and the one out of Pandora's jar. Same
+  code, turned upright.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.
 - **`src/field.ts`** — the lantern. `light` decays on a half-life, `ink` is what
