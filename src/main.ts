@@ -4,9 +4,17 @@ import { Blossom } from './blossom';
 import { Field } from './field';
 import { CELL_ASPECT, compose, composeCard, type Plane } from './layout';
 import { Clearance, MarkField, markExtent, SPREAD } from './mark';
-import { at, fit, Painter } from './art';
+import { at, fit, Painter, type Art } from './art';
 import { plume, type Emitter } from './flame';
-import { activeScene, nextRest, phaseOf, RESTING, SCENES, SPAN, type Phase } from './scenes';
+import {
+  activeScene,
+  nextRest,
+  phaseOf,
+  RESTING,
+  SCENES,
+  SPAN,
+  type Phase,
+} from './scenes';
 import { GALLERY, PANDORA_MOUTH } from './slides/gallery';
 import { PIPES, R8_ART } from './slides/r8';
 import { Renderer, type Overlay } from './render';
@@ -295,18 +303,39 @@ function placeChrome(): void {
   quotes.coda.style.right = `${Math.max(cellW * 2, innerWidth - markLeft)}px`;
   quotes.coda.style.top = `${((top + bottom) / 2) * cellH}px`;
 
-  // Every other scene's line shares one position: ranged left, in the column
-  // to the right of the artwork, at the artwork's own height. A gallery wants
-  // its caption in the same place on every slide — moving it per scene reads
-  // as drift rather than as composition.
-  const artTop = badgeRow() + (plane.cols * BADGE_WIDTH) / 6.5 / aspect + 2;
-  const artBottom = plane.rows - chromeRows - 1;
-  for (const [key, el] of Object.entries(quotes)) {
-    if (key === 'coda') continue;
-    el.style.left = `${originX + plane.cols * 0.68 * cellW}px`;
+  // Every gallery line goes in the same place: under its picture, ranged from
+  // the middle. An earlier version put the portrait slides' lines in the empty
+  // column beside the picture and only stacked the landscape ones, which is
+  // the ordinary rule for captions — but on a canvas it reads as two different
+  // layouts rather than as one, and it forces every portrait picture down to
+  // less than half the width so that the column exists at all. Centred and
+  // stacked, every image is as large as the plane allows and the gallery reads
+  // as a sequence.
+  for (const sc of SCENES) {
+    const el = sc.quote ? quotes[sc.quote] : undefined;
+    if (!el || sc.quote === 'coda') continue;
     el.style.right = 'auto';
-    el.style.top = `${(artTop + (artBottom - artTop) * 0.52) * cellH}px`;
+    const b = sc.id === 'r8' ? carLayout() : slideBand(GALLERY[sc.id]);
+    place(el, plane.cols * 0.5, Math.min(b.caption, plane.rows - chromeRows - 5));
   }
+}
+
+/**
+ * Puts a closing line at a column and row, then pulls it back onto the plane
+ * if it does not fit.
+ *
+ * The credits are set `nowrap` — "oscar wilde · the picture of dorian gray,
+ * 1891" broken over two lines is worse than a slightly narrower margin — so on
+ * a narrow window the nominal column runs the line off the right-hand edge.
+ * Nothing else on the page can tell you that has happened, because a canvas
+ * does not overflow.
+ */
+function place(el: HTMLElement, col: number, row: number): void {
+  el.style.left = `${originX + col * cellW}px`;
+  el.style.top = `${row * cellH}px`;
+  const room = originX + plane.cols * cellW - cellW * 1.5;
+  const over = el.getBoundingClientRect().right - room;
+  if (over > 0) el.style.left = `${Math.max(cellW, originX + col * cellW - over)}px`;
 }
 
 /** The car's final width in cells; the quote is placed off its right edge. */
@@ -612,9 +641,16 @@ function stepMark(dt: number): void {
 /** How far the branch has grown; act two's readout counts against it. */
 let blossomP = 0;
 
-/** Rows from the top of the plane to the centre of the Audi badge. */
+/**
+ * Rows from the top of the plane to the centre of the Audi badge.
+ *
+ * Solved from the car's layout rather than set as a fraction of the plane, so
+ * badge, car and caption are one block centred together. A fixed fraction
+ * looks right on the window it was tuned on and nowhere else: on a tall screen
+ * it left the rings stranded half a page above the car they belong to.
+ */
 function badgeRow(): number {
-  return plane.rows * 0.135;
+  return carLayout().badge;
 }
 
 function stepBlossom(): void {
@@ -634,16 +670,76 @@ function stepBlossom(): void {
   }
 }
 
-/** Fraction of the plane's width the Audi rings settle at. */
-const BADGE_WIDTH = 0.40;
+/**
+ * Fraction of the plane's width the Audi rings settle at.
+ *
+ * Small. The rings are a marque over a car, not the subject of the slide, and
+ * at twice this they were larger than the R8 underneath — which reads as a
+ * logo that happens to have a car parked below it.
+ */
+const BADGE_WIDTH = 0.26;
 /**
  * Fraction of the plane the car spans.
  *
- * It sits left of centre rather than centred, because the plume trails off its
- * tail and the closing line needs a column of its own on the right. A centred
- * car leaves a margin too narrow for either.
+ * Nearly all of it. The R8 elevation is three and a half times wider than it
+ * is tall, which on a character grid is nearly five to one — at half the plane
+ * it came out twenty rows deep, and twenty rows is not enough to hold a
+ * wheel, an arch and a sill apart. Every other slide is portrait and can
+ * afford a column beside it for its line; this one cannot, so its line goes
+ * underneath, which is where a caption belongs under a wide picture anyway.
  */
-const CAR_WIDTH = 0.5;
+const CAR_WIDTH = 0.68;
+
+function aspect(): number {
+  return cellH / cellW;
+}
+
+/**
+ * Where a landscape picture and the line under it sit, in rows.
+ *
+ * Both are solved together and both are returned, because the caption has to
+ * be placed against the picture's own lower edge: derive it from the viewport
+ * instead and the two drift apart on every screen but the one I tested. The
+ * scale is resolved here rather than left to `fit` for the same reason — on a
+ * short window the picture is height-limited, and a caption placed under the
+ * height it *would* have had lands on top of it.
+ *
+ * @param head Rows already spoken for above the picture; the badge, for the R8.
+ */
+function band(art: Art, width: number, head: number): { mid: number; rows: number; caption: number } {
+  const a = aspect();
+  const floor = plane.rows - chromeRows - 2;
+  const room = Math.max(6, floor - CAPTION_ROWS - head);
+  const scale = Math.min((plane.cols * width) / art.w, (room * a) / art.h);
+  const rows = (art.h * scale) / a;
+  const top = head + Math.max(0, (floor - head - rows - CAPTION_ROWS) / 2);
+  return { mid: top + rows / 2, rows, caption: top + rows + 3 };
+}
+
+/**
+ * The horizontal band the car sits in: under the badge, above its own caption.
+ *
+ * Shared with `placeChrome`, so the line below the car is positioned off the
+ * car rather than off the viewport and the two cannot drift apart.
+ */
+function carLayout(): { badge: number; mid: number; rows: number; caption: number } {
+  const a = aspect();
+  // Half the badge's drawn height, in rows; the same expression the mark's own
+  // radius is derived from.
+  const half = (plane.cols * BADGE_WIDTH) / 6.5 / a;
+  const floor = plane.rows - chromeRows - 2;
+  const room = Math.max(6, floor - CAPTION_ROWS - half * 2 - 3);
+  const scale = Math.min((plane.cols * CAR_WIDTH) / R8_ART.w, (room * a) / R8_ART.h);
+  const rows = (R8_ART.h * scale) / a;
+  const total = half * 2 + 3 + rows + CAPTION_ROWS;
+  const top = Math.max(1, (floor - total) / 2);
+  return {
+    badge: top + half,
+    mid: top + half * 2 + 3 + rows / 2,
+    rows,
+    caption: top + half * 2 + 3 + rows + 3,
+  };
+}
 
 /** Where the car's artwork lands, so the flames and the quote can hang off it. */
 let carBox: ReturnType<typeof fit> | null = null;
@@ -659,20 +755,10 @@ function stepCar(now: number): void {
   const heat = smooth((ph.in - 0.72) / 0.28) * ph.on;
   if (arrive <= 0.01) return;
 
-  const badgeBottom = badgeRow() + (plane.cols * BADGE_WIDTH) / 6.5 / aspect;
-  const top = badgeBottom + 2;
-  const bottom = plane.rows - chromeRows - 1;
-  // Nose to the right, so the plume trails left and leaves the right-hand
-  // column clear for the closing line.
-  carBox = fit(
-    R8_ART,
-    plane.cols * CAR_WIDTH,
-    (bottom - top) * 0.86,
-    plane.cols * 0.4,
-    (top + bottom) / 2,
-    aspect,
-    true,
-  );
+  // Nose to the right, so the plume trails left off the tail and away from
+  // the column the closing line sits in.
+  const b = carLayout();
+  carBox = fit(R8_ART, plane.cols * CAR_WIDTH, b.rows, plane.cols * 0.56, b.mid, aspect, true);
 
   painter.clear();
   painter.draw(R8_ART, carBox);
@@ -692,8 +778,8 @@ function stepCar(now: number): void {
     overlayPrio,
     2,
     undefined,
-    plane.cols * 0.2,
-    plane.cols * 0.045,
+    plane.cols * 0.21,
+    plane.cols * 0.05,
   );
 }
 
@@ -704,22 +790,38 @@ function stepCar(now: number): void {
  * the top — so the closing line always lands in the same column and the
  * gallery reads as a sequence rather than as a set of one-offs.
  */
+/** Fraction of the plane a slide spans, landscape and portrait. */
+const WIDE_SLIDE = 0.8;
+const TALL_SLIDE = 0.6;
+/** Rows a closing line and its credit take up, for centring a slide's block. */
+const CAPTION_ROWS = 8;
+
+/**
+ * How much of the plane a picture is allowed, by its own shape.
+ *
+ * A portrait one gets less width because it will be height-limited anyway, and
+ * letting it ask for more only makes the arithmetic lie about how tall it ends
+ * up. Nothing here is per-scene: the picture's proportions decide.
+ */
+function slideBand(art: Art): { mid: number; rows: number; caption: number } {
+  return band(art, art.h > art.w ? TALL_SLIDE : WIDE_SLIDE, 2);
+}
+
 function stepSlides(now: number): void {
   if (!overlay || !painter) return;
   const aspect = cellH / cellW;
-  const top = 3;
-  const bottom = plane.rows - chromeRows - 2;
   for (let i = 0; i < SCENES.length; i++) {
     const art = GALLERY[SCENES[i].id];
     if (!art) continue;
     const ph = phases[i];
     if (!ph.live || ph.on <= 0.01) continue;
+    const b = slideBand(art);
     const box = fit(
       art,
-      plane.cols * 0.44,
-      (bottom - top) * 0.94,
-      plane.cols * 0.36,
-      (top + bottom) / 2,
+      plane.cols * (art.h > art.w ? TALL_SLIDE : WIDE_SLIDE),
+      b.rows,
+      plane.cols * 0.5,
+      b.mid,
       aspect,
     );
     painter.clear();

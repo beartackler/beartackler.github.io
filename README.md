@@ -13,16 +13,26 @@ Uncover the page and four rings — the ikigai diagram — draw themselves in th
 middle of it. Sweeping the lantern along a ring burns that stretch in. One word
 appears at the bottom of the screen: `scroll`.
 
-That is the way into a gallery of six slides. Each one is an image made of
-characters and a line set beside it:
+That is the way into a gallery of eight slides. Each is an image made of
+characters, with a line under it:
 
 1. the ikigai mark and a plum branch — Musashi
 2. the four rings unfolding into the Audi rings, and an R8 with its exhaust
    alight — Andretti
 3. a boulder, a slope, a man — Camus
-4. a jar with everything already out of it — Hesiod
-5. a robot holding the last plant on Earth — Wall·E
-6. an empty portrait frame — Wilde
+4. a loaded bar on the floor — Rollins
+5. a ring under a hard light — Barthes
+6. a jar with everything already out of it — Hesiod
+7. a robot holding the last plant on Earth — Wall·E
+8. an empty portrait frame — Wilde
+
+The order is an argument rather than a playlist: purpose, then speed, then the
+labour underneath it, then the honesty of that labour, then the audience
+watching, then what gets let out, then living rather than surviving, and
+finally the mirror. Every line is quoted from a primary source and dated; where
+provenance runs only to quote aggregators the line does not get used, which is
+why the bodybuilding slide is Rollins in *Details* in 1994 and not a physique
+influencer.
 
 The rings and the Audi badge are the same four circles, one arranged as a
 diamond and one as a row, so that change is an interpolation of centres rather
@@ -46,7 +56,7 @@ composition.
 
 Nobody is trapped in the game. `space` lights the whole thing while anything is
 still hidden, `resume` is the PDF, and the full resume — with every one of the
-six lines and its attribution — is in the DOM at all times for screen readers,
+eight lines and its attribution — is in the DOM at all times for screen readers,
 crawlers and `noscript`.
 
 A touch screen has no cursor, so it gets a card instead of the page: the
@@ -82,17 +92,50 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 - **`src/art.ts`** — one renderer for every drawn thing: filled polygons and
   stroked polylines, scanline-rasterised with subsampled coverage and resolved
   through the same measured density ramp as the haze. Six slides drawn six ways
-  would look like six projects. Stroke widths are given in *cells*, not artwork
-  pixels — a line thinner than a cell is not a line, it is a fraction of
-  coverage that the compositor dilutes into whatever it is drawn over.
+  would look like six projects. Three details carry most of the quality:
+
+  - Stroke widths are given in *cells*, not artwork pixels. A line thinner than
+    a cell is not a line, it is a fraction of coverage that the compositor
+    dilutes into whatever it is drawn over.
+  - A stroke is *sharpened* after rasterising: the cells a line passes through
+    take the line's own brightness rather than their coverage of it. A one-cell
+    line rarely lands squarely inside a cell, so its coverage comes out around
+    a half — and half coverage times full tone lands on a sparse glyph on a dim
+    sheet. Drawn that way the R8's wheels were in the buffer and invisible on
+    the page. Fills still take their glyph from coverage, because thinning out
+    is what less of a *region* looks like.
+  - `edge` fills a path and keeps only the boundary of what got filled, and
+    `edge: 'outer'` keeps only the boundary against a flood from outside. A
+    traced contour cannot be stroked: marching squares walks one continuous
+    loop through every detached component, so the path doubles back constantly
+    — under an even-odd fill those excursions cancel, stroked they all draw,
+    and the car's silhouette came out as a hedge.
 - **`src/slides/r8.ts`** — the car, traced from a dimensioned CAD side elevation
-  rather than modelled. The drawing is 949 × 269, aspect 3.528; a real R8 is
-  4431 × 1252 mm, aspect 3.539 — within 0.3%, so tracing it gives proportions
-  that are correct rather than plausible. `tools/fidelity.mjs` scores the result
-  against the source at 97.5% intersection-over-union. It is drawn as line work,
-  not shaded tone: on a black page a black tyre and near-black glass are not
-  dark details, they are the background, and the first attempt produced a car
-  with no wheels.
+  rather than modelled. The drawing is 955 × 275, aspect 3.47; a real R8 is
+  4431 × 1252 mm, aspect 3.539 — within 2%, so tracing it gives proportions that
+  are correct rather than plausible. It is drawn as line work, not shaded tone:
+  on a black page a black tyre and near-black glass are not dark details, they
+  are the background, and the first attempt produced a car with no wheels. The
+  second filled the body dim instead, which is worse in a subtler way — tone
+  picks the glyph, not the opacity, so a dim flank is still a fully opaque
+  character in every one of two thousand cells and the car arrives as a grey
+  brick with a car-shaped edge.
+
+  Of fifty-one traced panels, seven are drawn. At about 120 cells the drawing
+  resamples at seven reference pixels per cell, so most of its line work is
+  sub-cell and adds an even grey texture that eats the silhouette. The one that
+  matters most is the flank: its *boundary* is the whole interior drawing at
+  once — both arches, the shoulder line, the sill, the leading edge of the
+  sideblade. An earlier pass discarded it on the grounds that the outline of the
+  biggest region must be the silhouette drawn twice, which is exactly wrong,
+  because the silhouette runs along the ground under the tyres and this one runs
+  around the arches.
+- **`src/slides/gallery.ts`** — the other six. Sisyphus is drawn as a solid
+  silhouette against a line-drawn boulder rather than as the sketch's stick
+  figure, because a limb at this size is one cell wide and three parallel
+  one-cell lines beside the rim of a stone arrive as gravel. The jar, the frame
+  and the ring are outline only: a dim fill still puts a character in every
+  cell, and two thousand of them is a wall, not a shadow.
 - **`src/flame.ts`** — the exhaust plume, and the one out of Pandora's jar. Same
   code, turned upright.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
@@ -129,17 +172,25 @@ ones: stroke width is what falls below a pixel as the icon shrinks, so the
 construction is invisible at 16px and crisp at 180px. `apple-touch-icon.png` is
 the same geometry with more padding, since iOS masks it to a squircle.
 
-Zero runtime dependencies. ~43 kB of JS, 18.3 kB gzipped. 8.3 ms median frame
-with the page fully lit, and the same through all three acts — the car is
-rasterised into cells, and there are only about a thousand triangles.
+Zero runtime dependencies. ~53 kB of JS, 22.5 kB gzipped, of which 7 kB is the
+car's path data. 8.3 ms median frame with the page fully lit and the same
+through the whole gallery.
 
-The scroll cue and the closing line are both positioned off the *plane* rather
-than off the screen edges: the cue hangs on the mark's own column, and the line
-is ranged right against the mark at its final height. Anything positioned off a
-viewport corner reads as chrome; anything positioned off the mark reads as
-belonging to it. The cue is drawn with the same density ramp as the rule under
+Everything that is text is positioned off the *plane* rather than off the screen
+edges. The scroll cue hangs on the mark's own column; act two's line is ranged
+right against the mark at its final height; each slide's line is centred under
+its picture, against the picture's own lower edge rather than against the
+viewport, and the picture's height is solved before it is fitted so that the two
+cannot disagree on a short window. Anything positioned off a viewport corner
+reads as chrome. The cue is drawn with the same density ramp as the rule under
 the name, for the same reason — a 1px CSS rule would be the only thing on the
 page not made of characters.
+
+One layout for all eight slides, picture centred and line underneath. The
+obvious alternative — caption beside a portrait, caption below a landscape,
+which is the ordinary rule for captions — reads on a canvas as two layouts
+rather than one, and forces every portrait picture down to less than half the
+width so that the column exists at all.
 
 ## Colour
 
@@ -147,7 +198,7 @@ Act one is black, bone and a safelight amber. Act two is black, bone and plum,
 and the amber is gone before the plum arrives — the fade finishes at 32% of the
 scroll and the branch does not start growing until 26%.
 
-Act three adds no fourth colour. Exhaust flames on a real V10 are violet-white
+The gallery adds no fourth colour. Exhaust flames on a real V10 are violet-white
 rather than orange, because what is burning is unburnt fuel lighting off in the
 pipe, so the fire is already the plum act two established — the same hue doing
 a different job. Its core is bone rather than white-hot for the same reason the
@@ -191,10 +242,22 @@ npm run build
 
 Pushing to `main` deploys via GitHub Actions.
 
-`car.html` is a contact sheet of the R8 at a spread of angles, rendered through
-the real atlas and the real ramp, with `?m=lum` for raw shading and `?m=mat`
-for materials. Judging a mesh through an ASCII ramp confuses two questions at
-once; those two modes separate them.
+`car.html` renders any slide's artwork at a chosen size through the real atlas
+and the real ramp, so what is judged there is what the page will draw:
+`?art=walle` picks a scene by id, `?w=90` forces a width in cells, `?only=3-9`
+draws a slice of the shape list for bisecting, and `?m=tone` shows raw alpha
+with no ramp.
+
+`tools/trace.mjs` turns a line drawing into path data — marching squares over a
+flood-filled mask, then Douglas–Peucker — and `tools/fidelity.mjs` scores the
+result against the drawing's own filled silhouette and prints a map of where the
+two disagree, so "1:1 with the real car" is a number rather than an opinion. The
+R8's outline scores 88.7% IoU while losing only 27 cells of 9377: the shortfall
+is all the other way and all deliberate, because the silhouette is traced with a
+three-pixel closing. Without it the front grille defeats the trace — its slats
+are loose strokes with air between them, so a flood from outside walks into the
+nose and the contour goes around all ten of them, and the car arrives with a
+dotted bumper.
 
 `banner.html` renders `public/linkedin-banner.png` (1584 × 396) from the page's
 own parts — the same glyph atlas, block face, mark geometry and palette tokens,

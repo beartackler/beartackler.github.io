@@ -3,20 +3,24 @@
  * atlas and the real ramp, so what is judged here is what the page will draw.
  * Vite builds index.html only, so this ships nothing.
  *
- *   /car.html            the R8 at a few sizes
- *   /car.html?m=tone     raw tone x coverage, no ramp
- *   /car.html?w=90       force a width in cells
+ *   /car.html               the R8 at a few sizes
+ *   /car.html?art=walle     any other slide, by scene id
+ *   /car.html?m=tone        raw alpha, no ramp
+ *   /car.html?w=90          force a width in cells
+ *   /car.html?only=3-9      a slice of the shape list, for bisecting
  */
 import './style.css';
 import { Atlas, type Palette } from './atlas';
 import { fit, Painter } from './art';
 import { CELL_ASPECT } from './layout';
 import { R8_ART } from './slides/r8';
+import { GALLERY } from './slides/gallery';
 import type { Art } from './art';
 import type { Overlay } from './render';
 
 const q = new URLSearchParams(location.search);
 const MODE = q.get('m');
+const ART: Art = q.get('art') ? GALLERY[q.get('art')!] : R8_ART;
 const WIDTHS = q.get('w') ? [Number(q.get('w'))] : [130, 100, 72];
 
 const css = getComputedStyle(document.documentElement);
@@ -29,14 +33,14 @@ const palette: Palette = {
 
 const CELL_W = 9;
 const CELL_H = Math.round(CELL_W * CELL_ASPECT);
-const COLS = 150;
+const COLS = Number(q.get("cols") || 150);
 const charset = [...".,:;-=+*#%@'\"/\\|()[]{}<>~^`o_"].map((s) => s.charCodeAt(0));
 
 await document.fonts.load(`${Math.round(CELL_H * 0.95)}px "Departure Mono"`);
 const dpr = 2;
 const atlas = new Atlas(CELL_W, CELL_H, dpr, Math.round(CELL_H * 0.95), charset, palette);
 
-const bands = WIDTHS.map((w) => Math.ceil((R8_ART.h / R8_ART.w) * w / CELL_ASPECT) + 6);
+const bands = WIDTHS.map((w) => Math.ceil((ART.h / ART.w) * w / CELL_ASPECT) + 6);
 const ROWS = bands.reduce((a, b) => a + b, 0);
 
 const canvas = document.getElementById('car') as HTMLCanvasElement;
@@ -61,9 +65,9 @@ WIDTHS.forEach((wCells, n) => {
   painter.clear();
   const only = q.get('only');
   const art: Art = only
-    ? { ...R8_ART, shapes: R8_ART.shapes.slice(Number(only.split('-')[0]), Number(only.split('-')[1])) }
-    : R8_ART;
-  painter.draw(art, fit(R8_ART, wCells, rows - 2, COLS / 2, rows / 2, CELL_ASPECT));
+    ? { ...ART, shapes: ART.shapes.slice(Number(only.split('-')[0]), Number(only.split('-')[1])) }
+    : ART;
+  painter.draw(art, fit(ART, wCells, rows - 2, COLS / 2, rows / 2, CELL_ASPECT));
   painter.paint(ov, atlas.ramp, 1, prio, 1);
 
   for (let r = 0; r < rows; r++) {
