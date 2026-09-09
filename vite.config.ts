@@ -76,6 +76,27 @@ function resumeDocument(): Plugin {
     </figure>`;
       const coda = QUOTES.map((k: string) => quote(k, data[k])).join('');
 
+      // The way out. Same data as the header above, because someone who has just
+      // scrolled through the whole gallery should not have to scroll back up to
+      // find out how to get in touch. Hidden from the accessibility tree and
+      // out of the tab order like the rest of the canvas chrome: #doc is the
+      // copy that reads, and it has all of this already.
+      const outro = `
+    <div id="outro" aria-hidden="true">
+      <p class="outro-mark"><span>&#9608;</span></p>
+      <p class="outro-lede">that's all of it.</p>
+      <p class="outro-rule">...'''::::---===+++**##@@##**+++===---::::'''...</p>
+      <ul class="outro-links">
+        <li><a href="mailto:${esc(p.email)}" tabindex="-1">${esc(p.email)}</a></li>
+        <li><a href="${esc(p.githubHref)}" tabindex="-1">${esc(p.github)}</a></li>
+        <li><a href="${esc(p.linkedinHref)}" tabindex="-1">${esc(p.linkedin)}</a></li>
+      </ul>
+      <p class="outro-acts">
+        <a href="${esc(p.resume)}" target="_blank" rel="noopener" tabindex="-1">resume.pdf</a>
+        <button id="to-top" type="button" tabindex="-1">back to the top</button>
+      </p>
+    </div>`;
+
       const head = `
     <meta name="description" content="${esc(p.summary)}" />
     <meta property="og:title" content="${esc(p.properName)}" />
@@ -104,6 +125,7 @@ function resumeDocument(): Plugin {
       return html
         .replace('<!--DOC-->', doc)
         .replace('<!--CODA-->', coda)
+        .replace('<!--OUTRO-->', outro)
         .replace('<!--HEAD-->', head);
     },
   };

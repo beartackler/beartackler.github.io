@@ -12,6 +12,7 @@ import {
   phaseOf,
   RESTING,
   SCENES,
+  SLIDES,
   SPAN,
   type Phase,
 } from './scenes';
@@ -48,6 +49,7 @@ const hotspots = document.getElementById('hotspots') as HTMLElement;
 const boot = document.getElementById('boot') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const gate = document.getElementById('gate') as HTMLElement;
+const outro = document.getElementById('outro') as HTMLElement;
 const nudge = document.getElementById('nudge') as HTMLButtonElement;
 const caret = document.getElementById('caret') as HTMLElement;
 /**
@@ -1136,7 +1138,17 @@ function applyJourney(): void {
   // Guarded, because act one's counter is the discovery mechanic. Setting the
   // slide number unconditionally overwrote the word count on every frame and
   // quietly deleted the only feedback the uncovering game has.
-  if (ik.in > 0.02) setReadout(sceneAt + 1, SCENES.length, 'slides');
+  // Clamped at six, because the outro is not a slide — it is the page saying
+  // that was all of them.
+  if (ik.in > 0.02) setReadout(Math.min(sceneAt + 1, SLIDES), SLIDES, 'slides');
+  // The way out arrives on its own entrance and then simply stays: it has no
+  // exit beat, so there is nothing to fade it back out for. Driven by scroll
+  // rather than by a CSS transition on a class, like everything else here —
+  // a time-based fade would be the one thing on the page that keeps moving
+  // after the scroll has stopped.
+  const away = phases[SCENES.length - 1];
+  outro.style.opacity = smooth(away.in / 0.55).toFixed(3);
+  outro.classList.toggle('on', away.in > 0.02);
 
   // Each scene owns its own closing line, and shows it for the whole of its
   // hold. That is the entire point of the hold: the line's fade is 1.4s, and
@@ -1295,6 +1307,10 @@ nudge.addEventListener('click', () => {
 
 document.getElementById('reveal-toggle')!.addEventListener('click', () => {
   if (!cardMode) revealAll();
+});
+
+document.getElementById('to-top')!.addEventListener('click', () => {
+  scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 document.getElementById('gate-skip')!.addEventListener('click', () => {

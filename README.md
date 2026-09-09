@@ -37,6 +37,13 @@ characters, with a line under it:
 5. a robot holding the last plant on Earth, in a boot — Wall·E
 6. an empty portrait frame — Wilde
 
+Then the way out: the blinking block the page opened with, alone in the dark
+again, over an email address and two links. Six drawings used to end in an
+empty black page — the visitor who scrolled the whole way, by definition the
+most engaged one the page gets, arrived at nothing with the counter still
+insisting there were six of six, and two thousand pixels of scrolling between
+them and a way to get in touch.
+
 The order is an argument rather than a playlist: purpose, then speed, then the
 labour underneath it, then the honesty of that labour, then living rather than
 surviving, and finally the mirror. Every line is quoted from a primary source
@@ -111,7 +118,12 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   reversible. Amplitudes are fractions of the band it occupies rather than
   fixed row counts, so it fills the top of any viewport.
 - **`src/scenes.ts`** — the timeline. Beats are measured in viewports, so a slide
-  takes the same fraction of a scroll gesture on any screen.
+  takes the same fraction of a scroll gesture on any screen. Seven scenes, six
+  slides: the outro is in the running order but not in the count, because the
+  counter promises "n of six" and the outro is the page saying that was all of
+  them. Its opacity is driven from the scroll position rather than by a CSS
+  transition on a class, like everything else here — a time-based fade would be
+  the one thing on the page still moving after the scroll had stopped.
 - **`src/art.ts`** — one renderer for every drawn thing: filled polygons and
   stroked polylines, scanline-rasterised with subsampled coverage and resolved
   through the same measured density ramp as the haze. Six slides drawn six ways
@@ -228,6 +240,16 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   bright housing round an *erased* lens with one pupil in it — a bright disc
   with a ring round it is a headlamp — and an iris ring as well is true to the
   design and lands against the housing at thirteen cells across.
+
+  Two things then had to be taken *out* of him. The proportion was wrong in the
+  way that matters: he had a head wider than his own body, which is a
+  bobblehead, so the body got wider and the eyes smaller. And the front face
+  carried a lid seam, a hatch, a badge plate and three louvres — all true to
+  the sketch, and together with the body's own top and bottom edges that is
+  five horizontal rules inside twenty rows, which is a barcode. One hatch
+  survives. The same arithmetic retired the treads' track links: eight pairs of
+  ticks inside three rows resolve as a solid bar the length of the tread, which
+  is a girder rather than a track.
 
   The bar is seen down its own length. Square to the page a barbell is two
   circles and a rule: symmetric, centred and completely inert, which is a

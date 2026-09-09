@@ -644,6 +644,122 @@ body.act2 #reveal-toggle {
   .chrome button::after { content: ''; }
 }
 
+/* ── The way out ──────────────────────────────────────────────────────── */
+
+/* The gallery used to end in a black page. Six drawings, a counter still
+   reading six of six, and nothing: the visitor who scrolled the whole way —
+   by definition the most engaged one the page gets — arrived at a dead end
+   and had two thousand pixels of scrolling to do before finding an email
+   address.
+
+   The blinking block is the one the page opened with, which is the whole
+   idea: it began as a cursor alone in the dark and it ends as one. */
+#outro {
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  top: calc(50% - 1.5rem);
+  translate: -50% -50%;
+  width: min(30rem, calc(100vw - 3rem));
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Opacity is set per frame from the scroll position; the class only decides
+   whether the links underneath it can be clicked. */
+#outro.on {
+  pointer-events: auto;
+}
+
+#outro p,
+#outro ul {
+  margin: 0;
+  padding: 0;
+}
+
+#outro .outro-mark {
+  color: var(--bloom);
+  font-size: 1.05rem;
+  line-height: 1;
+  margin-bottom: 0.9rem;
+}
+
+#outro .outro-mark span {
+  animation: blink 1.15s steps(1, end) infinite;
+}
+
+#outro .outro-lede {
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+/* The same symmetric density ramp that rules off the wordmark at the top of
+   act one, so the end of the page is set in the material the start of it was.
+   A 1px line here would be the only element on the page not made of
+   characters, which is exactly what makes one look bolted on. */
+#outro .outro-rule {
+  margin: 1rem 0 1.3rem;
+  color: var(--bark);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#outro .outro-links {
+  display: grid;
+  gap: 0.34rem;
+  list-style: none;
+  font-size: 0.86rem;
+}
+
+#outro a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.25s var(--ease);
+}
+
+#outro .outro-links a:hover {
+  color: var(--bloom);
+}
+
+#outro .outro-acts {
+  display: flex;
+  gap: 1.6rem;
+  align-items: baseline;
+  margin-top: 1.4rem;
+}
+
+#outro .outro-acts a,
+#outro button {
+  border: 0;
+  padding: 0.3rem 0;
+  background: none;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--bloom);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.25s var(--ease);
+}
+
+#outro .outro-acts a::before,
+#outro button::before { content: '[ '; }
+#outro .outro-acts a::after,
+#outro button::after { content: ' ]'; }
+
+#outro .outro-acts a:hover,
+#outro button:hover { color: var(--display); }
+
+body.card #outro {
+  display: none;
+}
+
 /* ── The document ──────────────────────────────────────────────────────── */
 
 /* Present for screen readers and crawlers at all times; shown on demand. */

@@ -68,8 +68,21 @@ export const SCENES: Scene[] = [
   { id: 'sisyphus', beat: SHORT, quote: 'sisyphus' },
   { id: 'iron', beat: SHORT, quote: 'iron' },
   { id: 'walle', beat: SHORT, quote: 'walle' },
-  { id: 'dorian', beat: { enter: 0.5, hold: 0.65, exit: 0.3 }, quote: 'dorian' },
+  { id: 'dorian', beat: { enter: 0.5, hold: 0.65, exit: 0.35 }, quote: 'dorian' },
+  // The way out. Six pictures used to end in an empty black page: the visitor
+  // who scrolled the whole thing — the most engaged one there is — arrived at
+  // nothing, with the counter still insisting there were six of six. It has no
+  // exit beat, because there is nothing after it to hand over to.
+  { id: 'outro', beat: { enter: 0.55, hold: 0.8, exit: 0 } },
 ];
+
+/**
+ * How many scenes are pictures with a line under them.
+ *
+ * The counter promises "n of six slides" and the outro is not one of them —
+ * it is the page saying that was all of them.
+ */
+export const SLIDES = SCENES.filter((s) => s.quote).length;
 
 const LEN = (b: Beat) => b.enter + b.hold + b.exit;
 

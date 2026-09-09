@@ -390,7 +390,9 @@ function tread(
   out.push({ tone: tone * 0.75, stroke: 1.6, d: circle(x1, y1, w * 0.58, 24) });
   out.push({ tone: tone * 0.5, d: circle(x0, y0, w * 0.16, 12) });
   out.push({ tone: tone * 0.5, d: circle(x1, y1, w * 0.16, 12) });
-  // Track links along the top and bottom runs.
+  // Track links along the top and bottom runs. Few and short: a full set of
+  // them is eight pairs of ticks inside three rows, which resolves as a solid
+  // bar the length of the tread and reads as a girder rather than a track.
   const dx = x1 - x0;
   const dy = y1 - y0;
   const len = Math.hypot(dx, dy);
@@ -401,16 +403,16 @@ function tread(
     const cx = x0 + dx * t;
     const cy = y0 + dy * t;
     out.push({
-      tone: tone * 0.52,
+      tone: tone * 0.62,
       stroke: 1.2,
       open: true,
-      d: [cx + nx * w * 0.62, cy + ny * w * 0.62, cx + nx * w, cy + ny * w],
+      d: [cx + nx * w * 0.78, cy + ny * w * 0.78, cx + nx * w, cy + ny * w],
     });
     out.push({
-      tone: tone * 0.52,
+      tone: tone * 0.62,
       stroke: 1.2,
       open: true,
-      d: [cx - nx * w * 0.62, cy - ny * w * 0.62, cx - nx * w, cy - ny * w],
+      d: [cx - nx * w * 0.78, cy - ny * w * 0.78, cx - nx * w, cy - ny * w],
     });
   }
   return out;
@@ -436,11 +438,14 @@ function eye(cx: number, cy: number, r: number): Art['shapes'] {
 }
 
 /** The body, as a parallelepiped: front face, left face, top. */
-const FTL = [432, 442];
-const FTR = [672, 486];
-const FBR = [672, 702];
-const FBL = [432, 660];
-const BACK = [-108, -48];
+// Wider than it was, and the head is smaller. The proportion that was wrong is
+// the one that matters: he had a head wider than his own body, which is a
+// bobblehead. On the reference the head is a little over half the body's width.
+const FTL = [410, 444];
+const FTR = [700, 488];
+const FBR = [700, 706];
+const FBL = [410, 662];
+const BACK = [-68, -30];
 const off = (p: number[]): number[] => [p[0] + BACK[0], p[1] + BACK[1]];
 const FRONT = [...FTL, ...FTR, ...FBR, ...FBL];
 const SIDE = [...off(FTL), ...FTL, ...FBL, ...off(FBL)];
@@ -528,31 +533,36 @@ export const WALLE_ART: Art = {
     ...tread(636, 600, 848, 690, 44, 0.55, 5),
     // The body. Front bright, the two faces turning away much dimmer — a box
     // whose three faces are all drawn at the same weight is a wireframe.
-    ...panel(SIDE, 0.5, 1.6),
-    ...panel(TOP, 0.55, 1.6),
+    ...panel(SIDE, 0.62, 1.6),
+    // The top face takes its cells back but is not outlined: at this depth its
+    // four edges are three near-horizontal rules stacked within six rows of
+    // each other, and a box drawn as a wireframe is a wireframe. One line
+    // along the back is all the turn the shape needs.
+    { tone: 0, d: TOP },
+    { tone: 0.44, stroke: 1.5, open: true, d: [...off(FTL), ...off(FTR)] },
     ...panel(FRONT, 0.85, 2.4),
-    // The lid seam and the hatch. Wall·E's front is a door with a smaller door
-    // in it, which is what makes the box read as a container and not a crate.
-    // An earlier pass also had a badge plate and three louvres on it: true to
-    // the sketch, and eleven lines inside twenty rows, which is a scribble.
-    { tone: 0.4, stroke: 1.4, open: true, d: [...on(0, 0.34), ...on(1, 0.34)] },
-    { tone: 0.5, stroke: 1.4, d: [...on(0.14, 0.48), ...on(0.86, 0.48), ...on(0.86, 0.88), ...on(0.14, 0.88)] },
+    // The hatch, and nothing else on the front. Wall·E's front is a door, and
+    // the door is what makes the box a container rather than a crate. Earlier
+    // passes also had a lid seam, a badge plate and three louvres: all true to
+    // the sketch, and with the body's own top and bottom that is five
+    // horizontal rules inside twenty rows, which is a barcode.
+    { tone: 0.55, stroke: 1.5, d: [...on(0.14, 0.42), ...on(0.86, 0.42), ...on(0.86, 0.88), ...on(0.14, 0.88)] },
     { tone: 0.38, stroke: 1.3, open: true, d: [...off(FTL), ...off(FBL)] },
     // Near tread, in front of the body's bottom corner.
-    ...tread(250, 644, 486, 746, 54, 0.8, 6),
+    ...tread(258, 672, 496, 774, 52, 0.85, 4),
     // Neck and yoke. Thin, and set forward: the eyes cantilever out in front
     // of the body, which is the line of him.
     { tone: 0.8, stroke: 4, open: true, d: [476, 430, 468, 372, 498, 344] },
     { tone: 0.55, stroke: 1.5, d: circle(474, 402, 22, 16) },
-    ...panel(stadium(448, 278, 568, 298, 50), 0.7, 1.8),
-    ...eye(436, 268, 68),
-    ...eye(576, 292, 54),
+    ...panel(stadium(462, 280, 556, 300, 44), 0.7, 1.8),
+    ...eye(452, 272, 52),
+    ...eye(566, 294, 42),
     // The near arm, folded down the left side, and its claw.
     { tone: 0.6, stroke: 2.8, open: true, d: [430, 498, 388, 566, 396, 628] },
     ...panel([376, 624, 420, 636, 414, 668, 370, 656], 0.6, 1.6),
     // The raised arm. Two straight rods and a boxy elbow, held out and up,
     // because holding something up is half of what he is doing here.
-    { tone: 0.72, stroke: 3.2, open: true, d: [670, 506, 780, 436, 818, 336] },
+    { tone: 0.8, stroke: 3.2, open: true, d: [692, 486, 786, 428, 818, 336] },
     ...panel([760, 410, 804, 424, 794, 458, 750, 444], 0.7, 1.6),
     ...panel([798, 298, 848, 314, 838, 348, 788, 332], 0.8, 1.8),
     // The boot. It is a boot in the film and it has to be a boot here: a plant
