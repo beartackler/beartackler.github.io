@@ -18,9 +18,10 @@
  * Sealing them is also the whole of the 11% the IoU gives up.
  *
  * The named regions below are enclosed panels of the *unclosed* drawing. The
- * tracer finds fifty-one of them down to 150 pixels; these are the seven that
- * survive being drawn at seven reference pixels per character cell. Run
- * tools/trace.mjs by hand to see the rest.
+ * tracer finds fifty-one of them down to 150 pixels; these are the fifteen
+ * that survive being drawn at seven reference pixels per character cell. Most
+ * of the rest are rear-wheel spokes, which arrive as a grey disc. Run
+ * tools/trace.mjs by hand to see them all.
  */
 
 /** The closed silhouette, as one loop. */
@@ -46,3 +47,27 @@ export const TAIL_LAMP = [903,97,908,97,919,107,923,115,922,118,919,118,917,116,
 
 /** Traced region 48 of 51, 154 px, x88-112 y146-166. */
 export const HEAD_LAMP = [112,146,113,148,109,154,105,166,88,167,88,165,94,164,88,163,91,163,92,161,97,160,98,158,103,156,111,147];
+
+/** Traced region 2 of 51, 8646 px, x294-695 y213-240. */
+export const SILL = [681,213,692,213,694,214,695,241,294,241,295,226,316,226,317,224,407,223,408,221,544,219,545,217,680,214];
+
+/** Traced region 7 of 51, 1387 px, x310-539 y209-223. */
+export const ROCKER = [523,209,539,209,535,217,499,217,498,219,363,221,361,223,316,224,310,224,310,220,349,219,351,217,401,216,403,214,522,210];
+
+/** Traced region 3 of 51, 4717 px, x306-597 y86-110. */
+export const SHOULDER = [570,86,597,86,596,93,594,94,590,104,493,105,491,107,333,109,332,111,306,111,306,105,308,104,310,95,312,93,332,93,333,100,335,103,341,107,350,107,351,97,360,97,368,91,569,87];
+
+/** Traced region 22 of 51, 390 px, x415-611 y21-37. */
+export const ROOF = [461,21,522,21,523,23,578,28,579,30,596,31,598,33,612,35,611,38,600,34,587,33,586,31,512,23,449,24,448,26,429,27,416,30,415,28,435,26,436,24,461,22];
+
+/** Traced region 10 of 51, 978 px, x573-606 y41-81. */
+export const BLADE = [576,41,585,42,586,44,597,45,607,48,598,79,595,82,581,82,577,69,577,62,573,55,573,49,575,48,576,42];
+
+/** Traced region 11 of 51, 708 px, x280-308 y142-216. */
+export const ARCH_FRONT = [280,142,306,142,309,212,305,217,305,194,303,192,302,178,291,157,280,143];
+
+/** Traced region 8 of 51, 1066 px, x169-211 y147-188. */
+export const HUB_FRONT = [204,147,212,147,212,159,211,152,207,154,210,156,211,161,211,178,208,184,211,185,209,189,205,189,204,186,186,184,185,182,180,181,179,178,182,174,181,172,173,177,176,179,176,181,169,178,170,173,180,160,193,151,204,148];
+
+/** Traced region 21 of 51, 458 px, x877-935 y212-239. */
+export const DIFFUSER = [924,212,936,212,925,223,917,227,911,233,900,238,892,238,891,240,877,240,877,238,892,233,909,223,919,214,923,213];

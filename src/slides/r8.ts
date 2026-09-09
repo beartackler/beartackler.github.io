@@ -32,7 +32,24 @@ function rng(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-import { BONNET, DECK, FLANK, GLASS, HEAD_LAMP, OUTLINE, TAIL_LAMP, VALANCE } from './r8-paths';
+import {
+  ARCH_FRONT,
+  BLADE,
+  BONNET,
+  DECK,
+  DIFFUSER,
+  FLANK,
+  GLASS,
+  HEAD_LAMP,
+  HUB_FRONT,
+  OUTLINE,
+  ROCKER,
+  ROOF,
+  SHOULDER,
+  SILL,
+  TAIL_LAMP,
+  VALANCE,
+} from './r8-paths';
 
 const W = 955;
 /**
@@ -71,18 +88,29 @@ function wheel(cx: number): Shape[] {
     { tone: 1, stroke: 1.6, d: circle(cx, AXLE_Y, WHEEL_R, 40) },
     { tone: 0.62, stroke: 1.2, d: circle(cx, AXLE_Y, WHEEL_R * 0.6, 30) },
     { tone: 0.9, d: circle(cx, AXLE_Y, WHEEL_R * 0.14, 12) },
+    // A caliper at four o'clock, which is where the R8 carries it, and the one
+    // piece of wheel detail that survives eighteen cells: it is an arc rather
+    // than a repeating pattern, so it cannot alias into the rim beside it.
+    {
+      tone: 0.8,
+      stroke: 1.4,
+      open: true,
+      d: circle(cx, AXLE_Y, WHEEL_R * 0.46, 10, 0.3, 1.5),
+    },
   ];
 }
 
 /**
  * The interior lines worth drawing, chosen by hand out of fifty-one.
  *
- * All fifty-one is much worse than seven. The drawing is 955 px wide and the
+ * All fifty-one is much worse than fifteen. The drawing is 955 px wide and the
  * car renders at about 120 cells, so seven reference pixels land in one cell:
  * most of that line work is sub-cell, and drawing it does not add detail, it
  * adds an even grey texture that eats the silhouette. Nothing here is invented
  * — these are traced regions, just the ones large enough to survive the
- * resample, and each is a feature you would name describing the car.
+ * resample, and each is a feature you would name describing the car. Twenty of
+ * the ones left out are rear-wheel spokes, all of which arrive as the same
+ * grey disc.
  *
  * The flank is the surprise. Its *boundary* is the whole interior drawing at
  * once: both wheel arches, the shoulder line down the door, the sill, and the
@@ -90,6 +118,11 @@ function wheel(cx: number): Shape[] {
  * that the outline of the biggest region must just be the silhouette drawn
  * twice — exactly wrong, because the silhouette runs along the ground under
  * the tyres and this one runs around the arches.
+ *
+ * Tones are a depth order, not a lighting model. The things that read as the
+ * car — glass, lamps, the sideblade — sit at the top of the ramp; the panel
+ * seams sit in the middle; the shut lines under the sill sit low enough to be
+ * texture. Given the same weight they flatten into a wiring diagram.
  */
 const FEATURES: { d: number[]; tone: number; weight: number }[] = [
   { d: FLANK, tone: 0.62, weight: 1 },
@@ -99,6 +132,22 @@ const FEATURES: { d: number[]; tone: number; weight: number }[] = [
   { d: VALANCE, tone: 0.6, weight: 1 },
   { d: HEAD_LAMP, tone: 1, weight: 1 },
   { d: TAIL_LAMP, tone: 1, weight: 1 },
+  // The sideblade. It is the one panel nobody needs told is an R8, and at
+  // thirty-three pixels wide it is right on the edge of surviving, which is
+  // why it is drawn brightest of the seams.
+  { d: BLADE, tone: 1, weight: 1 },
+  // The long thin ones are shut lines, and they are kept dark on purpose. A
+  // panel two cells deep cannot be drawn as an outline — `edge` at one cell
+  // erodes it to nothing left over — so it arrives as a solid bar the length
+  // of the car, and at the tone the sideblade wants, four of those turn the
+  // elevation into a barcode.
+  { d: ROOF, tone: 0.44, weight: 1 },
+  { d: SHOULDER, tone: 0.4, weight: 1 },
+  { d: SILL, tone: 0.32, weight: 1 },
+  { d: ROCKER, tone: 0.24, weight: 1 },
+  { d: ARCH_FRONT, tone: 0.4, weight: 1 },
+  { d: HUB_FRONT, tone: 0.7, weight: 1 },
+  { d: DIFFUSER, tone: 0.5, weight: 1 },
 ];
 
 /**
@@ -118,9 +167,24 @@ function road(): Shape[] {
     const t = Math.pow(rand(), 1.4);
     smoke.push(784 + t * 240 + (rand() - 0.5) * 60, 250 - t * rand() * 90 + rand() * 30);
   }
+  // What the car is standing in. Not a reflection — a mirrored silhouette
+  // needs three times the height there is under the wheels, and squashed to
+  // fit it stops being a reflection and becomes a smear — but a pool of light
+  // under each wheel and a streak along the sills, which is what a low car on
+  // a wet surface actually reads as at a glance.
+  const pool: number[] = [];
+  for (let i = 0; i < 120; i++) {
+    const at = rand() < 0.5 ? FRONT_X : REAR_X;
+    const t = Math.pow(rand(), 1.6);
+    pool.push(at + (rand() - 0.5) * (60 + t * 190), 274 + t * 22);
+  }
+  for (let i = 0; i < 90; i++) {
+    pool.push(FRONT_X + rand() * (REAR_X - FRONT_X), 272 + Math.pow(rand(), 2) * 16);
+  }
   return [
     { tone: 0.09, specks: true, d: grit },
     { tone: 0.14, specks: true, d: smoke },
+    { tone: 0.24, specks: true, d: pool },
   ];
 }
 

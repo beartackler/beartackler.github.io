@@ -102,6 +102,17 @@ export type Art = {
   w: number;
   h: number;
   shapes: Shape[];
+  /**
+   * Shapes regenerated every frame, drawn over the static ones.
+   *
+   * A slide is meant to *rest* — that is the whole point of the hold — but
+   * resting is not the same as being frozen, and the two slides whose subject
+   * is living things looked dead precisely because nothing on them moved. The
+   * budget is small on purpose: a sprout that leans a couple of degrees and
+   * some drifting dust, not an animation. Everything load-bearing stays in
+   * `shapes`, so the picture is identical on a still capture.
+   */
+  live?: (t: number) => Shape[];
 };
 
 /** Where an artwork lands on the plane. */
@@ -146,6 +157,25 @@ export function at(art: Art, box: Box, x: number, y: number): { c: number; r: nu
   };
 }
 
+/**
+ * Turns a traced reference (tools/pose.mjs) into shapes.
+ *
+ * Bands are painted lightest first, each one over the last, so the darkest is
+ * on top — which is the order they were cut in.
+ *
+ * Tones are given explicitly rather than derived from the source's own levels,
+ * and they always need to be spread much wider than the arithmetic suggests. A
+ * pen sketch is mostly mid-grey hatching with the drawing itself in a thin
+ * darkest band; mapped proportionally, all of it lands in the top third of the
+ * ramp and the whole figure arrives as one lump.
+ */
+export function poster(
+  p: { w: number; h: number; bands: { tone: number; d: number[] }[] },
+  tones: number[],
+): Shape[] {
+  return p.bands.map((b, i) => ({ tone: tones[Math.min(tones.length - 1, i)], d: b.d }));
+}
+
 /** A closed polygon approximating a circle, for wheels and boulders. */
 export function circle(cx: number, cy: number, r: number, segs = 48, from = 0, to = Math.PI * 2): number[] {
   const out: number[] = [];
@@ -188,10 +218,12 @@ export class Painter {
   /** Per cell: which family of sheets it was drawn from. */
   private tint: Uint8Array;
 
-  constructor(
-    readonly cols: number,
-    readonly rows: number,
-  ) {
+  readonly cols: number;
+  readonly rows: number;
+
+  constructor(cols: number, rows: number) {
+    this.cols = cols;
+    this.rows = rows;
     this.tone = new Float32Array(cols * rows);
     this.cover = new Float32Array(cols * rows);
     this.drawn = new Float32Array(cols * rows);
@@ -210,9 +242,9 @@ export class Painter {
     this.tint.fill(0);
   }
 
-  draw(art: Art, box: Box): void {
+  draw(art: Art, box: Box, t = 0): void {
     this.artW = art.w;
-    for (const s of art.shapes) {
+    for (const s of art.live ? [...art.shapes, ...art.live(t)] : art.shapes) {
       this.hot = s.hue === 'plum' ? 1 : 0;
       if (s.specks) this.dots(s.d, s.tone, box);
       else if (s.edge) this.fillPath(s.d, s.tone, box, s.edge, s.stroke ?? 1);

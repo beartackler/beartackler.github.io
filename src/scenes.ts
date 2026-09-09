@@ -53,9 +53,8 @@ export type Scene = {
  * before it can be looked at. The rest are single images and need less.
  *
  * The running order is an argument, not a playlist: purpose, then speed, then
- * the labour underneath it, then the honesty of that labour, then the audience
- * watching, then what gets let out, then living rather than surviving, and
- * finally the mirror.
+ * the labour underneath it, then the honesty of that labour, then living
+ * rather than surviving, and finally the mirror.
  *
  * Holds are never shorter than half a viewport. Below that a fast scroll can
  * cross one inside a single inertial fling, which is the failure this whole
@@ -68,8 +67,6 @@ export const SCENES: Scene[] = [
   { id: 'r8', beat: { enter: 1.0, hold: 0.8, exit: 0.45 }, quote: 'drive' },
   { id: 'sisyphus', beat: SHORT, quote: 'sisyphus' },
   { id: 'iron', beat: SHORT, quote: 'iron' },
-  { id: 'spectacle', beat: SHORT, quote: 'spectacle' },
-  { id: 'pandora', beat: SHORT, quote: 'pandora' },
   { id: 'walle', beat: SHORT, quote: 'walle' },
   { id: 'dorian', beat: { enter: 0.5, hold: 0.65, exit: 0.3 }, quote: 'dorian' },
 ];

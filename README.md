@@ -13,26 +13,27 @@ Uncover the page and four rings — the ikigai diagram — draw themselves in th
 middle of it. Sweeping the lantern along a ring burns that stretch in. One word
 appears at the bottom of the screen: `scroll`.
 
-That is the way into a gallery of eight slides. Each is an image made of
+That is the way into a gallery of six slides. Each is an image made of
 characters, with a line under it:
 
 1. the ikigai mark and a plum branch — Musashi
-2. the four rings unfolding into the Audi rings, and an R8 with its exhaust
-   alight — Andretti
-3. a boulder, a slope, a man — Camus
-4. a loaded bar on the floor — Rollins
-5. a ring under a hard light — Barthes
-6. a jar with everything already out of it — Hesiod
-7. a robot holding the last plant on Earth — Wall·E
-8. an empty portrait frame — Wilde
+2. the four rings unfolding into the Audi rings, and an R8 driving in with its
+   exhaust alight — Andretti
+3. a man under a boulder on a slope — Camus
+4. a loaded bar, seen down its own length — Rollins
+5. a robot holding the last plant on Earth, in a boot — Wall·E
+6. an empty portrait frame — Wilde
 
 The order is an argument rather than a playlist: purpose, then speed, then the
-labour underneath it, then the honesty of that labour, then the audience
-watching, then what gets let out, then living rather than surviving, and
-finally the mirror. Every line is quoted from a primary source and dated; where
-provenance runs only to quote aggregators the line does not get used, which is
-why the bodybuilding slide is Rollins in *Details* in 1994 and not a physique
-influencer.
+labour underneath it, then the honesty of that labour, then living rather than
+surviving, and finally the mirror. Every line is quoted from a primary source
+and dated; where provenance runs only to quote aggregators the line does not
+get used, which is why the bodybuilding slide is Rollins in *Details* in 1994
+and not a physique influencer.
+
+There were eight. A wrestling ring and Pandora's jar were cut, not because the
+quotes were weak but because neither picture ever became the thing it was of: a
+ring is furniture, and furniture drawn accurately is furniture.
 
 The rings and the Audi badge are the same four circles, one arranged as a
 diamond and one as a row, so that change is an interpolation of centres rather
@@ -56,7 +57,7 @@ composition.
 
 Nobody is trapped in the game. `space` lights the whole thing while anything is
 still hidden, `resume` is the PDF, and the full resume — with every one of the
-eight lines and its attribution — is in the DOM at all times for screen readers,
+six lines and its attribution — is in the DOM at all times for screen readers,
 crawlers and `noscript`.
 
 A touch screen has no cursor, so it gets a card instead of the page: the
@@ -135,42 +136,92 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   character in every one of two thousand cells and the car arrives as a grey
   brick with a car-shaped edge.
 
-  Of fifty-one traced panels, seven are drawn. At about 120 cells the drawing
+  Of fifty-one traced panels, fifteen are drawn. At about 120 cells the drawing
   resamples at seven reference pixels per cell, so most of its line work is
-  sub-cell and adds an even grey texture that eats the silhouette. The one that
-  matters most is the flank: its *boundary* is the whole interior drawing at
-  once — both arches, the shoulder line, the sill, the leading edge of the
-  sideblade. An earlier pass discarded it on the grounds that the outline of the
-  biggest region must be the silhouette drawn twice, which is exactly wrong,
-  because the silhouette runs along the ground under the tyres and this one runs
-  around the arches.
-- **`src/slides/gallery.ts`** — the other six. Two rules run through all of
-  them, both learned by getting them wrong:
+  sub-cell and adds an even grey texture that eats the silhouette; twenty of the
+  ones left out are rear-wheel spokes, which all arrive as the same grey disc.
+  The one that matters most is the flank: its *boundary* is the whole interior
+  drawing at once — both arches, the shoulder line, the sill, the leading edge
+  of the sideblade. An earlier pass discarded it on the grounds that the outline
+  of the biggest region must be the silhouette drawn twice, which is exactly
+  wrong, because the silhouette runs along the ground under the tyres and this
+  one runs around the arches.
 
-  People are drawn as solid silhouettes, never as stick figures. A limb at this
-  size is one cell wide, and three parallel one-cell lines beside the rim of a
-  stone — or behind three ropes — arrive as gravel.
+  Tone across those fifteen is a depth order, not a lighting model. Glass, the
+  lamps and the sideblade sit at the top of the ramp; panel seams sit in the
+  middle; the shut lines under the sill sit low enough to be texture. Four of
+  them are long and only two cells deep — a panel that thin cannot be drawn as
+  an outline, because eroding it by a cell leaves nothing — so each arrives as a
+  solid bar the length of the car, and given the sideblade's weight they turn
+  the elevation into a barcode.
 
-  Every picture has something in the empty part of it. The slide that already
-  worked is the one with a plum branch shedding petals across the whole frame,
-  and most of what it had that the others lacked was air with something in it: a
-  hill with nothing on it is a diagonal line, and a hill with scree on it is a
-  hill. So there is chalk over the bar, dust in Dorian's empty room, grit and
-  tyre smoke under the R8, a crowd in the dark around the ring, and motes in the
-  light above it.
+  It drives in. Position eases out across almost the whole entrance so the car
+  is still visibly moving two-thirds of the way through and spends the last
+  stretch settling the final few cells; opacity runs on its own ramp, slightly
+  ahead, so it is materialising while it is still crossing. The exponent matters
+  more than it looks — at a quartic the car is 98% home by the halfway point and
+  the entrance reads as a fade again, which is the thing being fixed.
+- **`src/slides/gallery.ts`** — the other four. Four rules run through all of
+  them, all learned by getting them wrong:
 
-  Nothing is filled except people: a dim fill still puts a character in every
-  cell, and two thousand of them is a wall, not a shadow.
+  **Erase before you outline.** Every solid mass takes its own cells back to
+  black first and is then drawn as line work, so overlapping parts have real
+  edges. This is the single change that made the later slides legible. Two
+  bright shapes touching on a grid this coarse are one shape — Sisyphus welded
+  to the rim of his own boulder, three plates smeared into one thick coin — and
+  there is no tone that separates them, because tone picks the glyph. Drawing
+  the front shape's silhouette at tone *zero*, a shade wider, punches a hole in
+  what is behind it. A black-figure pot gets the same effect for free by
+  painting the man in the other colour.
 
-  The wrestling slide took four goes. A championship belt hung in the V a real
-  one hangs in came out as a moth. A square-on elevation of a ring came out as a
-  lamp over a table, and so did the same ring in three-quarter perspective —
-  because a ring is furniture, and furniture drawn accurately is furniture. What
-  works is one corner post at the edge of the frame, three ropes running out of
-  it, and two men in the middle: the subject is not the object, it is what is
-  happening on it.
-- **`src/flame.ts`** — the exhaust plume, and the one out of Pandora's jar. Same
-  code, turned upright.
+  **People are drawn as solid silhouettes, never as stick figures.** A limb at
+  this size is one cell wide, and three parallel one-cell lines beside the rim
+  of a stone arrive as gravel. Sisyphus is a torso quad, a head and four stroked
+  limbs, filled bright and then cut into.
+
+  **Nothing is filled except people.** A dim fill still puts a character in
+  every cell, and two thousand of them is a wall, not a shadow. The boulder is
+  the exception that proves it: a dark mass, a lit crescent, and fifty short
+  arcs following its curvature. Concentric is the whole trick — marks that run
+  *around* a sphere describe one, and the same marks scattered at random
+  describe a disc with dirt on it.
+
+  **Every picture has something in the empty part of it.** The slide that
+  already worked is the one with a plum branch shedding petals across the whole
+  frame, and most of what it had that the others lacked was air with something
+  in it: a hill with nothing on it is a diagonal line, and a hill with scree on
+  it is a hill. So there is chalk over the bar, grit under Wall·E, dust in
+  Dorian's empty room, and rays across Sisyphus' sky.
+
+  Two slides are worth their own note.
+
+  Wall·E was traced from a pen sketch three times before being built by hand,
+  and the failure is instructive: a hatched drawing is tonally almost uniform —
+  its information is in edges, not values — so posterising it returns one
+  textured lump at every setting. Assembled from boxes it failed four more
+  times, always the same way: recognisably a robot, recognisably not Wall·E.
+  What identifies him is a short list and none of it is the box. Two binocular
+  eyes on a yoke, cantilevered forward on a thin neck; treads that splay wider
+  than the body; and the fact that he is holding something up. Each eye is a
+  bright housing round an *erased* lens with one pupil in it — a bright disc
+  with a ring round it is a headlamp — and an iris ring as well is true to the
+  design and lands against the housing at thirteen cells across.
+
+  The bar is seen down its own length. Square to the page a barbell is two
+  circles and a rule: symmetric, centred and completely inert, which is a
+  strange thing for a picture whose subject is effort. From one end it is a
+  diagonal, with a stack as tall as the frame in the near corner and three much
+  smaller plates at the far end. The foreshortening is set by what has to fit
+  inside a plate rather than by the geometry — a hard three-quarter view is a
+  far more convincing disc, and thirteen cells across, which is not enough room
+  for a rim, a lip, a hub and six grip holes.
+
+  One thing on the page is deliberately alive during a hold: the sprout in
+  Wall·E's boot leans about two degrees either way over eleven seconds, under a
+  line about the difference between surviving and living. `Art.live` regenerates
+  those few shapes each frame; everything load-bearing stays static, so a still
+  capture of the hold is indistinguishable from any other.
+- **`src/flame.ts`** — the exhaust plume.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.
 - **`src/field.ts`** — the lantern. `light` decays on a half-life, `ink` is what
@@ -219,7 +270,7 @@ reads as chrome. The cue is drawn with the same density ramp as the rule under
 the name, for the same reason — a 1px CSS rule would be the only thing on the
 page not made of characters.
 
-One layout for all eight slides, picture centred and line underneath. The
+One layout for all six slides, picture centred and line underneath. The
 obvious alternative — caption beside a portrait, caption below a landscape,
 which is the ordinary rule for captions — reads on a canvas as two layouts
 rather than one, and forces every portrait picture down to less than half the
@@ -291,6 +342,13 @@ three-pixel closing. Without it the front grille defeats the trace — its slats
 are loose strokes with air between them, so a flood from outside walks into the
 nose and the contour goes around all ten of them, and the car arrives with a
 dotted bumper.
+
+`node --import ./tools/reg.mjs tools/ascii.mjs walle 130` prints a slide as
+text, straight from the real renderer — the loader hook is only there so node
+can import the TypeScript sources directly. `car.html` shows the finished thing
+in colour and the real font; this shows the characters, and for drawing work the
+characters are what matters. "Is this a barbell" is answerable from a glyph grid
+and is not really answerable from a nine-hundred-pixel screenshot of one.
 
 `banner.html` renders `public/linkedin-banner.png` (1584 × 396) from the page's
 own parts — the same glyph atlas, block face, mark geometry and palette tokens,

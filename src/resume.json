@@ -194,14 +194,6 @@
     ],
     "credit": "albert camus · the myth of sisyphus, 1942"
   },
-  "pandora": {
-    "lines": [
-      "only hope remained there",
-      "in an unbreakable home within,",
-      "under the rim of the great jar."
-    ],
-    "credit": "hesiod · works and days, c. 700 bc"
-  },
   "walle": {
     "lines": [
       "i don't want to survive.",
@@ -222,12 +214,5 @@
       "but two hundred pounds is always two hundred pounds."
     ],
     "credit": "henry rollins · the iron and the soul, 1994"
-  },
-  "spectacle": {
-    "lines": [
-      "a light without shadow",
-      "generates an emotion without reserve."
-    ],
-    "credit": "roland barthes · the world of wrestling, 1957"
   }
 }

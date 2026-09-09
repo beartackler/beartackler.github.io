@@ -15,7 +15,7 @@ import {
   SPAN,
   type Phase,
 } from './scenes';
-import { GALLERY, PANDORA_MOUTH } from './slides/gallery';
+import { GALLERY } from './slides/gallery';
 import { PIPES, R8_ART } from './slides/r8';
 import { Renderer, type Overlay } from './render';
 
@@ -530,8 +530,12 @@ function unlockMark(finished = false): void {
 }
 
 function smooth(x: number): number {
-  const t = Math.min(1, Math.max(0, x));
+  const t = clamp01(x);
   return t * t * (3 - 2 * t);
+}
+
+function clamp01(x: number): number {
+  return x < 0 ? 0 : x > 1 ? 1 : x;
 }
 
 /**
@@ -728,16 +732,20 @@ function carLayout(): { badge: number; mid: number; rows: number; caption: numbe
   // radius is derived from.
   const half = (plane.cols * BADGE_WIDTH) / 6.5 / a;
   const floor = plane.rows - chromeRows - 2;
-  const room = Math.max(6, floor - CAPTION_ROWS - half * 2 - 3);
+  // Two rows more air under the car than the gallery slides get. The picture
+  // ends at the road, not at the sills, so measured off the artwork box the
+  // line sits closer to the car than it does anywhere else on the page.
+  const drop = 5;
+  const room = Math.max(6, floor - CAPTION_ROWS - (drop - 3) - half * 2 - 3);
   const scale = Math.min((plane.cols * CAR_WIDTH) / R8_ART.w, (room * a) / R8_ART.h);
   const rows = (R8_ART.h * scale) / a;
-  const total = half * 2 + 3 + rows + CAPTION_ROWS;
+  const total = half * 2 + 3 + rows + CAPTION_ROWS + (drop - 3);
   const top = Math.max(1, (floor - total) / 2);
   return {
     badge: top + half,
     mid: top + half * 2 + 3 + rows / 2,
     rows,
-    caption: top + half * 2 + 3 + rows + 3,
+    caption: top + half * 2 + 3 + rows + drop,
   };
 }
 
@@ -749,16 +757,35 @@ function stepCar(now: number): void {
   carBox = null;
   if (!overlay || !painter || !ph.live) return;
   const aspect = cellH / cellW;
-  const arrive = smooth((ph.in - 0.34) / 0.42);
+  /**
+   * It drives in rather than appearing.
+   *
+   * Two curves, deliberately out of step. Position eases out gently across
+   * almost the whole entrance, so it is still visibly moving two-thirds of the
+   * way through and spends the last stretch settling the final few cells —
+   * braking rather than sliding. The exponent matters more than it looks: at
+   * a quartic the car is 98% of the way home by the halfway point and the
+   * entrance reads as a fade again, which is the thing being fixed.
+   *
+   * Opacity runs on its own ramp, a little ahead of the arrival, so it is
+   * gathering itself out of the dark while it is still crossing — arriving and
+   * materialising at once rather than a finished object pushed on stage.
+   *
+   * It enters from the left because it is nose-right: something moving away
+   * from the direction it faces is being towed.
+   */
+  const travel = 1 - Math.pow(1 - clamp01((ph.in - 0.02) / 0.86), 2.2);
+  const arrive = smooth((ph.in - 0.08) / 0.52);
   // The flames light at the end of the entrance and keep burning through the
   // hold — they are the one thing on the page that is alive while it rests.
-  const heat = smooth((ph.in - 0.72) / 0.28) * ph.on;
+  const heat = smooth((ph.in - 0.74) / 0.26) * ph.on;
   if (arrive <= 0.01) return;
 
   // Nose to the right, so the plume trails left off the tail and away from
   // the column the closing line sits in.
   const b = carLayout();
   carBox = fit(R8_ART, plane.cols * CAR_WIDTH, b.rows, plane.cols * 0.56, b.mid, aspect, true);
+  carBox.col -= (1 - travel) * plane.cols * 1.25;
 
   painter.clear();
   painter.draw(R8_ART, carBox);
@@ -825,28 +852,10 @@ function stepSlides(now: number): void {
       aspect,
     );
     painter.clear();
-    painter.draw(art, box);
+    // Frozen under reduced motion, the same as the flame. A leaning sprout is
+    // a small thing to move, but "small" is not the test.
+    painter.draw(art, box, reduced.matches ? 0 : now);
     painter.paint(overlay, ph.on, overlayPrio, 1);
-
-    if (SCENES[i].id === 'pandora') {
-      // What escapes the jar is the exhaust plume again, turned upright. Two
-      // slides apart, the same fire: the one that comes out of a supercar
-      // because you asked it to, and the one that does not go back in.
-      const q = at(art, box, PANDORA_MOUTH[0], PANDORA_MOUTH[1]);
-      plume(
-        overlay,
-        plane.cols,
-        plane.rows,
-        [{ c: q.c, r: q.r, dc: 0.32, dr: -1 }],
-        ph.on,
-        reduced.matches ? 0 : now / 1000,
-        overlayPrio,
-        2,
-        undefined,
-        plane.rows * 0.9,
-        plane.cols * 0.09,
-      );
-    }
   }
 }
 

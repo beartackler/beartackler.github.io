@@ -37,14 +37,21 @@ export class Atlas {
   readonly ramp: number[] = [];
   readonly scramble: number[] = [];
 
+  readonly cellW: number;
+  readonly cellH: number;
+  readonly dpr: number;
+
   constructor(
-    readonly cellW: number,
-    readonly cellH: number,
-    readonly dpr: number,
+    cellW: number,
+    cellH: number,
+    dpr: number,
     fontPx: number,
     charset: number[],
     palette: Palette,
   ) {
+    this.cellW = cellW;
+    this.cellH = cellH;
+    this.dpr = dpr;
     const codes = [...new Set(charset)].sort((a, b) => a - b);
     codes.forEach((c, i) => this.slot.set(c, i));
 
