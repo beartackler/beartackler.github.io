@@ -93,6 +93,15 @@ let touched = false;
 /** Where the lantern is, in client pixels, for lighting the chrome. */
 const lanternAt = { x: -9999, y: -9999 };
 let chromeLit = 0;
+/**
+ * How much light the lantern is still putting out.
+ *
+ * Once the rings are painted there is nothing left in act one to uncover, and
+ * a pool of light still chasing the cursor over a page that is already fully
+ * developed is just restlessness. It fades out over a second and a half
+ * rather than switching off, and comes back if the page is reset.
+ */
+let lanternGain = 1;
 let chromeBox: DOMRect | null = null;
 let surfacedAt = 0;
 const startedAt = performance.now();
@@ -218,7 +227,7 @@ function build(): void {
     // A static poster: hand over the mark rather than withholding it.
     unlockMark(true);
   }
-  hotspots.style.pointerEvents = 'auto';
+  hotspots.classList.remove('off');
   placeChrome();
   if (plane.caret) {
     caret.style.left = `${originX + plane.caret.col * cellW}px`;
@@ -413,6 +422,7 @@ function resetMark(): void {
   markOn = false;
   markPhase = 0;
   markComplete = false;
+  lanternGain = 1;
   scrollP = 0;
   scrollRaw = 0;
   blossomP = 0;
@@ -636,7 +646,10 @@ function frame(now: number): void {
 
   const idle = now - lastInput;
   const ghostAfter = coarse.matches ? IDLE_GHOST / 2 : IDLE_GHOST;
-  const reading = !reduced.matches && idle > ghostAfter && scrollP < 0.02;
+  // The page also stops reading itself once there is nothing left to read.
+  const reading = !reduced.matches && idle > ghostAfter && scrollP < 0.02 && !markComplete;
+  const want = markComplete ? 0 : 1;
+  lanternGain += Math.sign(want - lanternGain) * Math.min(Math.abs(want - lanternGain), dt / 1.5);
   const booting = !touched && !reading && !reduced.matches;
   const aspect = cellH / cellW;
 
@@ -675,11 +688,15 @@ function frame(now: number): void {
     const want = MAX_RADIUS - (MAX_RADIUS - MIN_RADIUS) * Math.min(1, speed / 2400);
     radius += (want - radius) * Math.min(1, dt * 8);
 
-    // Stamp along the path so a fast flick leaves a continuous trail.
-    const steps = Math.max(1, Math.ceil(distPx / (radius * cellW * 0.35)));
-    for (let s = 1; s <= steps; s++) {
-      const k = s / steps;
-      field.stamp(cursor.c + dc * k, cursor.r + dr * k, radius, aspect);
+    // Stamp along the path so a fast flick leaves a continuous trail. The
+    // position keeps tracking even after the lantern has faded out, because
+    // the chrome still lights when the pointer comes near it.
+    if (lanternGain > 0.01) {
+      const steps = Math.max(1, Math.ceil(distPx / (radius * cellW * 0.35)));
+      for (let s = 1; s <= steps; s++) {
+        const k = s / steps;
+        field.stamp(cursor.c + dc * k, cursor.r + dr * k, radius, aspect, lanternGain);
+      }
     }
     cursor.c += dc;
     cursor.r += dr;
@@ -715,8 +732,10 @@ function applyJourney(): void {
   // screen between the acts reads as a breath instead of a dead zone.
   renderer.fade = 1 - smooth(scrollP / 0.32);
   renderer.tint = smooth((scrollP - 0.04) / 0.24);
-  // Don't leave invisible links clickable once the resume has faded.
-  hotspots.style.pointerEvents = scrollP > 0.25 ? 'none' : 'auto';
+  // Don't leave invisible links clickable once the resume has faded. The
+  // class goes on the container but the rule it enables targets the anchors,
+  // because that is the only level at which it actually takes effect.
+  hotspots.classList.toggle('off', scrollP > 0.25);
   // Wait for the rings to finish drawing themselves before asking for more.
   nudge.classList.toggle('on', journeySpan() > 0 && markPhase > 0.6 && scrollP < 0.05);
 

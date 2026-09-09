@@ -96,6 +96,14 @@ body:not(.ready) .chrome {
   cursor: pointer;
 }
 
+/* Turning the container off does nothing on its own: a child setting
+   `pointer-events: auto` overrides an ancestor's `none`, so the resume's links
+   stayed clickable underneath the second and third acts long after the resume
+   itself had faded. They have to be switched off themselves. */
+#hotspots.off a {
+  pointer-events: none;
+}
+
 #spacer {
   position: relative;
   z-index: 0;
