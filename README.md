@@ -105,6 +105,15 @@ nothing is, and the button in the corner says which of those it is doing. For a
 while it said `reveal` the whole way down, so from the first slide to the last
 the chrome advertised a control that did something else.
 
+A deliberate downward flick of the wheel does the same thing as `space`. The
+gallery unlocks at ninety per cent of the words, which is a reward and should
+stay one, but until then the page is `overflow: hidden` — so someone enjoying
+the lantern who decides they would like to see further down used to get
+nothing at all: no movement, no hint, no explanation, and every reason to
+conclude the page was broken or over. A scroll gesture on a page that cannot
+scroll is about as clear a statement of "show me the rest" as a visitor can
+make without a keyboard.
+
 A touch screen has no cursor, so it gets the resume rather than the game: the
 wordmark, the contacts, the PDF, then every role, degree and skill, stacked in
 the same type and scrolling. The lantern and the gallery really are

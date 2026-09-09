@@ -1281,6 +1281,32 @@ addEventListener('scroll', () => {
   syncOrigin();
 }, { passive: true });
 
+/**
+ * A scroll gesture on a page that cannot scroll yet.
+ *
+ * The gallery unlocks at ninety per cent of the words, which is a reward and
+ * should stay one — but until then the page is `overflow: hidden`, so someone
+ * who is enjoying the lantern, decides they would like to see what is further
+ * down, and flicks the wheel gets *nothing*. No movement, no hint, no
+ * explanation. The reasonable conclusion is that the page is broken, or over.
+ *
+ * A deliberate downward flick is about as clear a statement of "show me the
+ * rest" as a visitor can make without a keyboard, so it is taken as one. The
+ * threshold is a whole gesture rather than a stray trackpad pixel, and the
+ * answer is the same one `space` gives.
+ */
+let scrollUrge = 0;
+addEventListener(
+  'wheel',
+  (e) => {
+    if (cardMode || gateOpen || !posterFits || journeySpan() > 0) return;
+    if (e.deltaY <= 0) return;
+    scrollUrge += e.deltaY;
+    if (scrollUrge > 260) revealAll();
+  },
+  { passive: true },
+);
+
 function revealAll(): void {
   // Whatever asked for this — the button, space, ?reveal — the question the
   // gate is asking has just been answered by someone who does not want to play.

@@ -685,14 +685,17 @@ function plate(t: number, r: number, tone: number, lit: number): Art['shapes'] {
     // plate behind is properly hidden and a stack reads as three rings
     // overlapping instead of one thick smear.
     { tone: 0, d: e(1) },
-    { tone: lit * 0.82, stroke: 2, d: e(1) },
+    { tone: lit * 0.82, stroke: 1.8, d: e(1) },
     // The light, on the shoulder everything else on this page is lit from.
-    { tone: lit, stroke: 2.4, open: true, d: e(1, 26, Math.PI * 0.6, Math.PI * 1.46) },
+    { tone: lit, stroke: 2.1, open: true, d: e(1, 26, Math.PI * 0.6, Math.PI * 1.46) },
     // A hub and nothing else. The first version had a raised lip, six grip
     // cut-outs and a collar hole as well; all of it is true of a real
     // forty-five and all of it lands inside the same eight cells, which is how
-    // an iron plate becomes a smudge.
-    { tone: tone * 0.66, stroke: 1.4, d: e(0.26, 26) },
+    // an iron plate becomes a smudge. Drawn at a bigger fraction than the real
+    // insert, because a ring five cells across has no inside: it resolves as a
+    // filled dot, and a filled dot in the middle of a plate is the one thing a
+    // plate does not have.
+    { tone: tone * 0.66, stroke: 1.3, d: e(0.38, 28) },
   ];
 }
 
