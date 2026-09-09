@@ -176,36 +176,60 @@ const ROCK_RX = 210;
 const ROCK_RY = 196;
 
 /**
- * A tapered segment — a limb thicker at one end than the other.
+ * A limb with a belly.
  *
- * Constant-width strokes are what made the first figure a stick man, and no
- * amount of extra line work fixes that: a thigh and a shin drawn at the same
- * weight are a hinge, not a leg. Two quads that narrow toward the joint, with
- * a disc at the joint itself to fill the notch, cost the same four points and
- * come out human.
+ * Widths are sampled along the bone and the sides run through all of them, so
+ * the silhouette can swell and pinch. A straight taper — two widths, four
+ * points — is what the first two attempts used, and it is the reason he read
+ * as a mannequin: every segment came out as a cone. Real legs are not cones.
+ * A calf is widest a third of the way down and then closes hard to an ankle
+ * half its width, and that one concave stretch above the foot does more for
+ * "this is a person" than any amount of interior line work, because it is the
+ * only part of a leg you can still see at forty rows.
  */
-function bone(x0: number, y0: number, w0: number, x1: number, y1: number, w1: number): number[] {
+function muscle(x0: number, y0: number, x1: number, y1: number, w: number[]): number[] {
   const dx = x1 - x0;
   const dy = y1 - y0;
   const len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len;
   const ny = dx / len;
-  return [
-    x0 + nx * w0, y0 + ny * w0,
-    x1 + nx * w1, y1 + ny * w1,
-    x1 - nx * w1, y1 - ny * w1,
-    x0 - nx * w0, y0 - ny * w0,
-  ];
+  const right: number[] = [];
+  const d: number[] = [];
+  for (let i = 0; i < w.length; i++) {
+    const t = i / (w.length - 1);
+    const cx = x0 + dx * t;
+    const cy = y0 + dy * t;
+    d.push(cx + nx * w[i], cy + ny * w[i]);
+    right.push(cx - nx * w[i], cy - ny * w[i]);
+  }
+  for (let i = right.length - 2; i >= 0; i -= 2) d.push(right[i], right[i + 1]);
+  return d;
 }
 
 /**
- * The man, built out of eighteen filled parts rather than four strokes.
+ * The man, in profile, built like someone who does this all day.
  *
- * He is small — about thirty-seven rows — but thirty-seven rows is a sprite,
- * not a pictogram, and there is room in it for a body that tapers to a waist,
- * a thigh heavier than its calf, an elbow, feet, and a head turned up at the
- * thing he is under. The earlier version spent that room on nothing: four
- * strokes of even width, which is the anatomy of a road sign.
+ * Two things were wrong and only one of them was proportion.
+ *
+ * The proportion fault: joints were drawn with `circle()`, whose second
+ * argument is the segment count and not a second radius, so every one of them
+ * was a true circle of the radius given — a thirty-unit ball at the hip, a
+ * twenty-four at the knee. Six round cells at a knee is not a knee, and eight
+ * such balls down a figure is why he read as convex everywhere. Joints are
+ * `disc()`s now, flattened and turned along the limb, and every one of them is
+ * smaller than the muscle above it.
+ *
+ * The deeper fault: he was being drawn as though the camera could see the
+ * width of his shoulders. It cannot — he is side-on to us, pushing away up the
+ * slope, and a side-on man has no shoulder span to show. In profile "big" is
+ * made of depth, not width: a trapezius that runs from the skull to the point
+ * of the shoulder, a chest that stands out in front of the arm, a lat that
+ * flares behind the armpit and then cuts in hard at the waist, a glute, and
+ * calves. So the torso is no longer a five-station slab. It is a drawn profile
+ * — nine stations down the front, ten back up the spine — and half of those
+ * stations exist to be concave: under the pectoral, the small of the back, the
+ * hollow above the ankle. Convexity everywhere is what a balloon animal looks
+ * like. A body is a run of bulges with hollows between them.
  *
  * The stance is the reference vase's rather than a textbook push: both feet
  * low and behind on the shallow part of the slope, the body laid along the
@@ -218,42 +242,57 @@ function bone(x0: number, y0: number, w0: number, x1: number, y1: number, w1: nu
  * something up, and holding it up is the one thing Sisyphus never gets to do.
  */
 const TORSO = [
-  // Left side, shoulder to seat, then the right side back up. Stations at the
-  // shoulders, chest, waist and hips, so it has a waist to taper to.
-  450, 346, 444, 376, 437, 425, 418, 465, 405, 511,
-  459, 529, 476, 485, 485, 441, 508, 398, 522, 370,
+  // Down the front, from the throat: clavicle, the pectoral standing out, the
+  // hollow beneath it, ribs, navel, the crease at the hip, the seat.
+  511, 330, 525, 359, 536, 384, 534, 407, 514, 427, 510, 453,
+  498, 481, 482, 507, 468, 530, 459, 546,
+  // Then up the back: glute, sacrum, the small of the back pulling in, the
+  // lat flaring wide again, the shoulder, and the trapezius to the skull.
+  427, 548, 397, 528, 393, 504, 410, 480, 431, 454, 427, 418,
+  424, 388, 435, 364, 450, 344, 479, 322,
 ];
-const LOINCLOTH = [404, 498, 468, 514, 458, 570, 398, 552];
-// Seven heads to the figure, not five. The first pass gave him a head as wide
-// as his own shoulders, which is a child's proportion and reads as a doll.
-const HEAD = disc(458, 286, 27, 23, -0.4);
-const HAIR = disc(438, 292, 15, 13, -0.35);
+const LOINCLOTH = [396, 486, 486, 512, 478, 560, 448, 578, 404, 566, 388, 528];
+const HEAD = disc(486, 286, 34, 31, -0.35);
+const HAIR = disc(460, 294, 18, 16, -0.3);
 
-/** Every filled part of him, far side first so the near side draws over it. */
-const FIGURE: { d: number[]; tone: number }[] = [
-  { d: bone(476, 356, 17, 520, 318, 13), tone: 0.55 },
-  { d: circle(520, 318, 13, 14), tone: 0.55 },
-  { d: bone(520, 318, 13, 600, 288, 9), tone: 0.55 },
-  { d: circle(602, 288, 12, 14), tone: 0.6 },
-  { d: bone(412, 512, 27, 326, 584, 19), tone: 0.55 },
-  { d: circle(326, 584, 18, 16), tone: 0.55 },
-  { d: bone(326, 584, 19, 222, 692, 12), tone: 0.55 },
-  { d: [200, 684, 248, 690, 250, 704, 196, 700], tone: 0.6 },
+/**
+ * Every filled part of him, far side first so the near side draws over it.
+ *
+ * Each limb's widths are read along the bone: shoulder, belly, and then the
+ * close. A thigh goes 36 → 41 → 22 and a calf 22 → 30 → 9, and it is that
+ * last number that does the work. Two cells of ankle under seven cells of
+ * calf is the one piece of human silhouette that survives being printed at
+ * eight units to the character.
+ *
+ * `rim` marks the parts that get their own reserved line — the near arm and
+ * the near leg, the two that cross the body. Both are at full tone, both lie
+ * over a chest at full tone, and two touching shapes at the same tone resolve
+ * to the same glyph, so the ribs and the bicep were arriving as one
+ * fourteen-cell slab. Tone will not fix it: the ramp's top rung is wide, and
+ * an arm has to fall to 0.85 before it changes character at all, by which
+ * point the nearest limb on the figure is dimmer than his back.
+ */
+const FIGURE: { d: number[]; tone: number; rim?: number }[] = [
+  { d: muscle(424, 506, 330, 580, [33, 38, 35, 27, 20]), tone: 0.5 },
+  { d: disc(330, 580, 19, 16, -0.5), tone: 0.5 },
+  { d: muscle(330, 580, 236, 676, [20, 27, 20, 12, 8]), tone: 0.5 },
+  { d: [204, 650, 196, 670, 268, 700, 278, 688, 238, 664], tone: 0.58 },
+  { d: muscle(480, 348, 544, 305, [27, 29, 26, 20, 16]), tone: 0.52 },
+  { d: disc(544, 305, 16, 14, -0.6), tone: 0.52 },
+  { d: muscle(544, 305, 604, 280, [18, 20, 17, 12, 9]), tone: 0.52 },
+  { d: disc(606, 278, 14, 11, -0.4), tone: 0.58 },
   { d: TORSO, tone: 1 },
   { d: LOINCLOTH, tone: 0.62 },
-  { d: bone(466, 314, 11, 486, 358, 16), tone: 0.95 },
   { d: HAIR, tone: 0.78 },
   { d: HEAD, tone: 1 },
-  { d: circle(452, 522, 24, 18), tone: 1 },
-  { d: bone(452, 522, 28, 534, 578, 21), tone: 1 },
-  { d: circle(534, 578, 19, 16), tone: 1 },
-  { d: bone(534, 578, 21, 472, 640, 13), tone: 1 },
-  { d: [442, 634, 494, 642, 496, 656, 438, 652], tone: 1 },
-  { d: circle(510, 376, 19, 16), tone: 1 },
-  { d: bone(510, 376, 20, 556, 330, 15), tone: 1 },
-  { d: circle(556, 330, 14, 14), tone: 1 },
-  { d: bone(556, 330, 15, 614, 258, 10), tone: 1 },
-  { d: circle(616, 256, 13, 14), tone: 1 },
+  { d: muscle(452, 524, 556, 594, [36, 41, 38, 29, 22]), tone: 1 },
+  { d: disc(556, 594, 22, 19, 0.5), tone: 1 },
+  { d: muscle(556, 594, 448, 650, [22, 30, 22, 14, 9]), tone: 1 },
+  { d: [424, 646, 420, 666, 486, 648, 494, 636, 452, 632], tone: 1 },
+  { d: muscle(503, 357, 578, 313, [31, 33, 29, 23, 19]), tone: 1, rim: 1 },
+  { d: disc(578, 313, 19, 16, -0.6), tone: 1, rim: 1 },
+  { d: muscle(578, 313, 622, 252, [21, 24, 20, 14, 10]), tone: 1, rim: 1 },
+  { d: disc(624, 250, 15, 12, -0.9), tone: 1 },
 ];
 
 /**
@@ -261,14 +300,15 @@ const FIGURE: { d: number[]; tone: number }[] = [
  *
  * Four, and four is the ceiling. Six turns the torso into a barcode: a chest
  * six cells wide cannot hold three fold lines and still be a chest. These are
- * the four that do structural work — a neck, a pectoral, the near arm passing
- * in front of the ribs, and daylight between the legs.
+ * the four that do structural work — the neck out of the traps, the seam
+ * seam where the arm leaves the chest, the lat closing into the waist, and
+ * daylight at the crotch so the two legs are two legs.
  */
 const CUTS: [number, number, ...number[]][] = [
-  [1.1, 0.1, 466, 320, 492, 336],
-  [0.9, 0.2, 462, 388, 502, 402],
-  [1, 0.14, 506, 388, 492, 420],
-  [1, 0.14, 436, 526, 448, 552],
+  [1, 0.1, 484, 318, 504, 336],
+  [0.9, 0.15, 512, 376, 540, 390],
+  [0.9, 0.12, 442, 424, 434, 458],
+  [1, 0.14, 430, 544, 456, 570],
 ];
 
 function pusher(): Art['shapes'] {
@@ -278,9 +318,18 @@ function pusher(): Art['shapes'] {
   // tone zero with a fatter pen erases what is behind him, so the rock ends
   // where he begins — which is what a pot gets for free by painting the man in
   // the other colour.
+  //
+  // For the whole figure, not part by part. A vase reserves a line around every
+  // limb and that is why you can count four wrestlers on one; it also has a
+  // foot of clay to do it in. Here a shoulder is five cells and an arm is
+  // four, they overlap, and giving each of them its own reserved line punches
+  // the chest into gravel. The separation that matters at this size is between
+  // the man and the rock.
   return [
     ...FIGURE.map(({ d }) => ({ tone: 0, stroke: 3, d })),
-    ...FIGURE.map(({ d, tone }) => ({ tone, d })),
+    ...FIGURE.flatMap(({ d, tone, rim }) =>
+      rim ? [{ tone: 0, stroke: rim, d }, { tone, d }] : [{ tone, d }],
+    ),
     ...CUTS.map(([w, tone, ...d]) => ({ tone, stroke: w, open: true, d })),
   ];
 }

@@ -244,8 +244,8 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 
   **People are drawn as solid silhouettes, never as stick figures.** A limb at
   this size is one cell wide, and three parallel one-cell lines beside the rim
-  of a stone arrive as gravel. Sisyphus is a torso quad, a head and four stroked
-  limbs, filled bright and then cut into.
+  of a stone arrive as gravel. Sisyphus is a drawn torso profile, a head and
+  eight tapered limb segments, filled bright and then cut into four times.
 
   **Nothing is filled except people.** A dim fill still puts a character in
   every cell, and two thousand of them is a wall, not a shadow. The boulder is
@@ -261,7 +261,36 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   it is a hill. So there is chalk over the bar, grit under Wall·E, dust in
   Dorian's empty room, and rays across Sisyphus' sky.
 
-  Two slides are worth their own note.
+  Three slides are worth their own note.
+
+  Sisyphus took three passes and each one failed differently. Traced from a
+  silhouette he came back as a single blob, because a silhouette of a man, a
+  boulder and a slope is one connected black region. Built from straight
+  tapered limbs he came back as a mannequin: a two-width taper is a cone, and a
+  figure assembled from cones has no concave stretch anywhere on it. Real
+  silhouettes are runs of bulges with hollows between them, and the hollows are
+  the part that reads — a calf is widest a third of the way down and then
+  closes to an ankle a third its width, and that one inward curve does more for
+  "this is a person" than any amount of interior line work. So limbs are
+  sampled at five widths along the bone and the sides run through all of them.
+
+  The third failure was arithmetic. Joints were drawn with `circle()`, whose
+  second argument is the segment count and not a second radius — so every joint
+  was a true circle at the radius given, a thirty-unit ball at the hip and a
+  twenty-four at the knee. Six round cells at a knee is not a knee, and eight
+  of them down one figure is why he read as convex everywhere.
+
+  He is also side-on, which rules out the obvious way to draw a strong man.
+  There is no shoulder span to show from the side; in profile the mass is all
+  depth. Trapezius from the skull to the point of the shoulder, a chest that
+  stands out in front of the arm, a lat that flares behind the armpit and cuts
+  in hard at the waist. Thirteen cells of chest over eight of waist, which is
+  as much V as a character grid will hold. The near arm gets a reserved line —
+  its own outline drawn at tone zero one cell wide, immediately before it is
+  filled — because it crosses a chest at the same tone as itself, and the ramp's
+  top rung is wide enough that an arm has to fall to 0.85 before it changes
+  glyph at all, by which point the nearest limb on the figure is dimmer than
+  his back.
 
   Wall·E was traced from a pen sketch three times before being built by hand,
   and the failure is instructive: a hatched drawing is tonally almost uniform —
