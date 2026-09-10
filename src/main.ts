@@ -84,6 +84,8 @@ const palette: Palette = {
   bark: colour('--bark'),
   bloom: colour('--bloom'),
   bloomDeep: colour('--bloom-deep'),
+  leaf: colour('--leaf'),
+  leafDeep: colour('--leaf-deep'),
 };
 const bg = colour('--bg');
 

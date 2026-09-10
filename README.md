@@ -322,6 +322,28 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   is not a line, it is a hole — the head with one came away from its own neck,
   and the ankle with one came away from its own foot.
 
+  The boot took two goes and the lesson was the same one Sisyphus taught. The
+  first was an outline sixteen cells by eight with laces inside it, and it read
+  as a pipe. What fixed it was not detail. It got bigger — half again, which
+  cost nothing once the artwork stopped being height-limited at 1000×856 and
+  was laid out along its diagonal at 1000×620 instead. It got a proper **L**: a
+  shaft clearly taller than it is wide, and a foot leaving it at a right angle
+  and running half as far out again. And it got a sole, drawn as its own slab
+  under the whole length with a heel block beneath the back of it, because a
+  horizontal bar under an L is the thing that says footwear. Everything above
+  the sole could be a chimney; the sole is what makes it a boot.
+
+  The lacing is three eyelets. Rungs across the shaft are four near-horizontal
+  rules inside eight rows, which this page knows what to expect from — and an X
+  turned out to be the same thing wearing a hat, because an X twelve cells wide
+  and four tall is two near-horizontal rules. Three dots up the front edge run
+  the other way and cannot merge into a band however coarse the grid gets.
+
+  The raised arm leaves the body's *side*, low, rather than its top corner.
+  Hung off the corner it runs along the same diagonal as the top edge of the
+  box, and the two resolve as one bright bar four hundred units long: the arm
+  disappears and the body loses its lid in the same stroke.
+
   Wall·E was traced from a pen sketch three times before being built by hand,
   and the failure is instructive: a hatched drawing is tonally almost uniform —
   its information is in edges, not values — so posterising it returns one
@@ -354,8 +376,9 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   for a rim, a lip, a hub and six grip holes.
 
   Two things on the page are deliberately alive during a hold. The sprout in
-  Wall·E's boot leans about two degrees either way over eleven seconds, under a
-  line about the difference between surviving and living; the black hole's disc
+  Wall·E's boot — the only green on the site — leans about two degrees either
+  way over eleven seconds, under a line about the difference between surviving
+  and living; the black hole's disc
   never stops. `Art.live` regenerates those shapes each frame and everything
   load-bearing stays static, so a still capture of the sprout's hold is
   indistinguishable from any other. The hole is the exception to that and the
@@ -443,12 +466,20 @@ Act one is black, bone and a safelight amber. Act two is black, bone and plum,
 and the amber is gone before the plum arrives — the fade finishes at 32% of the
 scroll and the branch does not start growing until 26%.
 
-The gallery adds no fourth colour. Exhaust flames on a real V10 are violet-white
-rather than orange, because what is burning is unburnt fuel lighting off in the
-pipe, so the fire is already the plum act two established — the same hue doing
-a different job. Its core is bone rather than white-hot for the same reason the
-whole page is: against a black night a white core is the hottest part of a
-flame, but against a bone-white car it is invisible.
+The gallery adds one colour and spends it on one object. Exhaust flames on a
+real V10 are violet-white rather than orange, because what is burning is
+unburnt fuel lighting off in the pipe, so the fire is already the plum act two
+established — the same hue doing a different job. Its core is bone rather than
+white-hot for the same reason the whole page is: against a black night a white
+core is the hottest part of a flame, but against a bone-white car it is
+invisible.
+
+The exception is the sprout in Wall·E's boot, which is green: OKLCH hue 146,
+two sheets of its own in the atlas. It was plum, and plum is the page's one
+accent — already spent on the mark, the blossom and that flame — so the last
+living thing on Earth arrived looking like more of the same decoration. A
+colour used once, on the one object whose whole meaning is that it is alive,
+is not a fourth colour in the palette. It is a word said once.
 
 The plum sits at OKLCH hue 357, most of the way round the wheel from the
 safelight's 48. It started at hue 12, which was only 35 degrees off, and 35

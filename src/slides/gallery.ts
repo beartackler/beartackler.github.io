@@ -528,11 +528,11 @@ function eye(cx: number, cy: number, r: number): Art['shapes'] {
 // Wider than it was, and the head is smaller. The proportion that was wrong is
 // the one that matters: he had a head wider than his own body, which is a
 // bobblehead. On the reference the head is a little over half the body's width.
-const FTL = [410, 444];
-const FTR = [700, 488];
-const FBR = [700, 706];
-const FBL = [410, 662];
-const BACK = [-68, -30];
+const FTL = [352, 302];
+const FTR = [598, 340];
+const FBR = [598, 522];
+const FBL = [352, 484];
+const BACK = [-58, -26];
 const off = (p: number[]): number[] => [p[0] + BACK[0], p[1] + BACK[1]];
 const FRONT = [...FTL, ...FTR, ...FBR, ...FBL];
 const SIDE = [...off(FTL), ...FTL, ...FBL, ...off(FBL)];
@@ -547,9 +547,38 @@ function on(u: number, v: number): [number, number] {
   return [ax + (bx - ax) * v, ay + (by - ay) * v];
 }
 
-/** The boot, side on: shaft at the left, toe out to the right. */
+/**
+ * The boot, side on: shaft up, toe out to the right.
+ *
+ * The first one was an outline sixteen cells by eight with laces inside it,
+ * and it read as a pipe. Three things fixed it and none of them is detail.
+ *
+ * It got bigger — half again, which cost nothing once the artwork stopped
+ * being height-limited. It got an **L**: a shaft that is clearly taller than
+ * it is wide, and a foot that leaves it at a right angle and runs half as far
+ * out again. And it got a sole, drawn as its own slab under the whole length
+ * with a heel block beneath the back of it, because a horizontal bar under an
+ * L is the thing that says footwear. Everything above the sole could be a
+ * chimney; the sole is what makes it a boot.
+ *
+ * The lacing is three eyelets and nothing else. Rungs across the shaft are
+ * four near-horizontal rules inside eight rows, which this page has learned
+ * what to expect from; an X turned out to be the same thing wearing a hat,
+ * because an X twelve cells wide and four tall is two near-horizontal rules.
+ * Three dots up the front edge run the other way, so they cannot merge into a
+ * band however coarse the grid gets.
+ */
 const BOOT = [
-  788, 300, 964, 294, 970, 262, 878, 244, 874, 168, 804, 164, 798, 248, 784, 268,
+  708, 78, 798, 70, 806, 200, 950, 224, 968, 246, 956, 264, 716, 270, 700, 242,
+  696, 186, 702, 96,
+];
+const SOLE = [694, 258, 966, 246, 972, 272, 696, 288];
+const HEEL = [696, 286, 764, 282, 766, 316, 698, 320];
+/** Eyelets up the front of the shaft: the one lace mark that cannot barcode. */
+const EYELETS: [number, number][] = [
+  [768, 120],
+  [772, 152],
+  [776, 184],
 ];
 
 /** Grit, and the tracks he has left in it. */
@@ -559,7 +588,7 @@ function ground(): Art['shapes'] {
   const near: number[] = [];
   for (let i = 0; i < 430; i++) {
     const t = Math.pow(rand(), 0.6);
-    (rand() < 0.3 ? near : far).push(rand() * 1000, 700 + t * 120);
+    (rand() < 0.3 ? near : far).push(rand() * 1000, 462 + t * 140);
   }
   return [
     { tone: 0.07, specks: true, d: far },
@@ -575,15 +604,20 @@ function ground(): Art['shapes'] {
  * robot. It leans about two degrees either way over eleven seconds — slow
  * enough that a still capture of the hold is indistinguishable from any other,
  * and quick enough to notice while reading two lines of Wall·E.
+ *
+ * Green, and it is the only green anywhere on the site. It was plum, which is
+ * the page's one accent and is spent on the mark, the blossom and the exhaust
+ * flame — so the plant read as more of the same decoration rather than as the
+ * last living thing on Earth. Two sheets were added to the atlas for it.
  */
 function sprout(t: number): Art['shapes'] {
   const sway = Math.sin(t / 1750) * 0.055 + Math.sin(t / 830) * 0.016;
-  const bx = 840;
-  const by = 168;
+  const bx = 752;
+  const by = 84;
   const p = (h: number, k: number): [number, number] => {
     // Bending, not pivoting: the top of a stem travels further than its middle.
     const a = sway * h * h;
-    return [bx + Math.sin(a) * h * 96 + k * Math.cos(a), by - Math.cos(a) * h * 96 + k * Math.sin(a)];
+    return [bx + Math.sin(a) * h * 72 + k * Math.cos(a), by - Math.cos(a) * h * 72 + k * Math.sin(a)];
   };
   const stem: number[] = [];
   for (let i = 0; i <= 6; i++) stem.push(...p(i / 6, 0));
@@ -603,21 +637,27 @@ function sprout(t: number): Art['shapes'] {
     ];
   };
   return [
-    { tone: 0.95, hue: 'plum', stroke: 1.8, open: true, d: stem },
-    { tone: 0.8, hue: 'plum', d: leaf(0.52, -1, 62) },
-    { tone: 0.9, hue: 'plum', d: leaf(0.74, 1, 68) },
-    { tone: 0.7, hue: 'plum', d: leaf(0.98, -1, 44) },
+    { tone: 0.95, hue: 'leaf', stroke: 1.8, open: true, d: stem },
+    { tone: 0.8, hue: 'leaf', d: leaf(0.5, -1, 54) },
+    { tone: 0.95, hue: 'leaf', d: leaf(0.74, 1, 60) },
+    { tone: 0.72, hue: 'leaf', d: leaf(0.98, -1, 40) },
   ];
 }
 
 export const WALLE_ART: Art = {
   w: 1000,
-  h: 856,
+  // Landscape, and for the same reason the Sisyphus slide is: `band` takes the
+  // smaller of the width it offers and the rows it has left, so a squarish
+  // artwork is height-limited and never claims the width. At 1000x856 this one
+  // resolved to eighty-four columns of a hundred and twenty-eight available.
+  // Laid out along the diagonal instead — eyes low and left, boot high and
+  // right — it fits 620 and is drawn nearly half again as wide.
+  h: 620,
   live: sprout,
   shapes: [
     ...ground(),
     // Far tread first: the part of it behind the body gets covered.
-    ...tread(636, 600, 848, 690, 44, 0.55, 5),
+    ...tread(536, 424, 724, 492, 35, 0.55, 5),
     // The body. Front bright, the two faces turning away much dimmer — a box
     // whose three faces are all drawn at the same weight is a wireframe.
     ...panel(SIDE, 0.62, 1.6),
@@ -634,37 +674,41 @@ export const WALLE_ART: Art = {
     // the sketch, and with the body's own top and bottom that is five
     // horizontal rules inside twenty rows, which is a barcode.
     { tone: 0.55, stroke: 1.5, d: [...on(0.14, 0.42), ...on(0.86, 0.42), ...on(0.86, 0.88), ...on(0.14, 0.88)] },
-    { tone: 0.38, stroke: 1.3, open: true, d: [...off(FTL), ...off(FBL)] },
     // Near tread, in front of the body's bottom corner.
-    ...tread(258, 672, 496, 774, 52, 0.85, 4),
+    ...tread(206, 468, 424, 546, 43, 0.85, 4),
     // Neck and yoke. Thin, and set forward: the eyes cantilever out in front
     // of the body, which is the line of him.
-    { tone: 0.8, stroke: 4, open: true, d: [476, 430, 468, 372, 498, 344] },
-    { tone: 0.55, stroke: 1.5, d: circle(474, 402, 22, 16) },
-    ...panel(stadium(462, 280, 556, 300, 44), 0.7, 1.8),
-    ...eye(452, 272, 52),
-    ...eye(566, 294, 42),
+    { tone: 0.8, stroke: 4, open: true, d: [410, 296, 400, 248, 428, 224] },
+    { tone: 0.55, stroke: 1.5, d: circle(406, 274, 20, 16) },
+    ...panel(stadium(394, 190, 474, 206, 37), 0.7, 1.8),
+    ...eye(384, 184, 44),
+    ...eye(482, 202, 35),
     // The near arm, folded down the left side, and its claw.
-    { tone: 0.6, stroke: 2.8, open: true, d: [430, 498, 388, 566, 396, 628] },
-    ...panel([376, 624, 420, 636, 414, 668, 370, 656], 0.6, 1.6),
+    { tone: 0.6, stroke: 2.8, open: true, d: [362, 348, 322, 404, 330, 456] },
+    ...panel([310, 452, 348, 462, 342, 490, 304, 480], 0.6, 1.6),
     // The raised arm. Two straight rods and a boxy elbow, held out and up,
     // because holding something up is half of what he is doing here.
-    { tone: 0.8, stroke: 3.2, open: true, d: [692, 486, 786, 428, 818, 336] },
-    ...panel([760, 410, 804, 424, 794, 458, 750, 444], 0.7, 1.6),
-    ...panel([798, 298, 848, 314, 838, 348, 788, 332], 0.8, 1.8),
+    //
+    // It leaves the body's *side*, low, not its top corner. Hung off the
+    // corner the arm runs along the same diagonal as the top edge of the box
+    // and the two resolve as one bright bar four hundred units long — the arm
+    // disappears and the body loses its lid in the same stroke.
+    { tone: 0.8, stroke: 3.2, open: true, d: [598, 404, 656, 350, 692, 286] },
+    ...panel([636, 336, 678, 350, 668, 380, 626, 366], 0.7, 1.6),
+    // The claw, closed on the sole. It grips from underneath rather than round
+    // the shaft, which keeps the arm clear of the boot's own outline — drawn
+    // overlapping, the two of them came out as one column.
+    ...panel([658, 272, 702, 284, 694, 314, 650, 302], 0.8, 1.8),
     // The boot. It is a boot in the film and it has to be a boot here: a plant
     // in a pot is a houseplant, and the whole point is that it was found.
     ...panel(BOOT, 1, 2.4),
-    // The welt above the sole, and three laces up the shaft.
-    { tone: 0.55, stroke: 1.4, open: true, d: [792, 276, 950, 272] },
-    ...[0.3, 0.64].map((v) => ({
-      tone: 0.45,
-      stroke: 1.2,
-      open: true,
-      d: [806 + v * 8, 176 + v * 62, 874 - v * 4, 180 + v * 58],
-    })),
+    ...panel(SOLE, 0.9, 1.8),
+    ...panel(HEEL, 0.7, 1.6),
+    // The cuff, and the eyelets.
+    { tone: 0.6, stroke: 1.5, open: true, d: [702, 104, 802, 96] },
+    ...EYELETS.map(([x, y]) => ({ tone: 0.6, d: circle(x, y, 8, 10) })),
     // Soil in the boot, so the sprout is planted in something.
-    { tone: 0.5, stroke: 1.5, open: true, d: [808, 176, 840, 168, 872, 178] },
+    { tone: 0.5, stroke: 1.5, open: true, d: [706, 92, 752, 82, 800, 90] },
   ],
 };
 

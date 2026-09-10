@@ -14,6 +14,8 @@ export type Palette = {
   bark: string;
   bloom: string;
   bloomDeep: string;
+  leaf: string;
+  leafDeep: string;
 };
 
 /** Index into `Atlas.sheets`. Tones 0–3 line up with layout.ts `Tone`. */
@@ -27,6 +29,8 @@ export const Sheet = {
   Bark: 6,
   Bloom: 7,
   BloomDeep: 8,
+  Leaf: 9,
+  LeafDeep: 10,
 } as const;
 
 export class Atlas {
@@ -68,6 +72,8 @@ export class Atlas {
       palette.bark,
       palette.bloom,
       palette.bloomDeep,
+      palette.leaf,
+      palette.leafDeep,
     ];
 
     for (const colour of colours) {

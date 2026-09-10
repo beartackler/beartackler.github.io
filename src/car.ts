@@ -29,6 +29,7 @@ const palette: Palette = {
   display: c('--display'), ink: c('--ink'), dim: c('--ink-dim'), muted: c('--muted'),
   glow: c('--glow'), glowHot: c('--glow-hot'), bark: c('--bark'),
   bloom: c('--bloom'), bloomDeep: c('--bloom-deep'),
+  leaf: c('--leaf'), leafDeep: c('--leaf-deep'),
 };
 
 const CELL_W = 9;

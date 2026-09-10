@@ -95,7 +95,7 @@ export type Shape = {
    * `plum` is act two's colour, reused for the few things on later slides that
    * are alight rather than drawn — a lamp, a sprout, a sun.
    */
-  hue?: 'bone' | 'plum';
+  hue?: 'bone' | 'plum' | 'leaf';
 };
 
 export type Art = {
@@ -213,7 +213,7 @@ export class Painter {
   private xs: number[] = [];
   /** Set by `draw`, so a mirrored box knows what to mirror about. */
   private artW = 0;
-  /** Whether the shape being drawn is plum rather than bone. */
+  /** Which colour family the shape being drawn belongs to: bone, plum, leaf. */
   private hot = 0;
   /** Per cell: which family of sheets it was drawn from. */
   private tint: Uint8Array;
@@ -245,7 +245,7 @@ export class Painter {
   draw(art: Art, box: Box, t = 0): void {
     this.artW = art.w;
     for (const s of art.live ? [...art.shapes, ...art.live(t)] : art.shapes) {
-      this.hot = s.hue === 'plum' ? 1 : 0;
+      this.hot = s.hue === 'plum' ? 1 : s.hue === 'leaf' ? 2 : 0;
       if (s.specks) this.dots(s.d, s.tone, box);
       else if (s.edge) this.fillPath(s.d, s.tone, box, s.edge, s.stroke ?? 1);
       else if (s.stroke) this.strokePath(s.d, s.stroke, s.tone, box, s.open === true);
@@ -620,17 +620,22 @@ export class Painter {
       // flame uses Display as its core because the hottest part of a flame is
       // near white, but a sprout or a sun that resolves to Display is simply
       // bone, and the whole point of tinting it was that it is not.
-      out.sheet[i] = this.tint[i]
-        ? ink > 0.44
-          ? Sheet.Bloom
-          : Sheet.BloomDeep
-        : ink > 0.82
-          ? Sheet.Display
-          : ink > 0.54
-            ? Sheet.Ink
-            : ink > 0.28
-              ? Sheet.Dim
-              : Sheet.Muted;
+      out.sheet[i] =
+        this.tint[i] === 1
+          ? ink > 0.44
+            ? Sheet.Bloom
+            : Sheet.BloomDeep
+          : this.tint[i] === 2
+            ? ink > 0.44
+              ? Sheet.Leaf
+              : Sheet.LeafDeep
+            : ink > 0.82
+              ? Sheet.Display
+              : ink > 0.54
+                ? Sheet.Ink
+                : ink > 0.28
+                  ? Sheet.Dim
+                  : Sheet.Muted;
       out.alpha[i] = Math.min(1, alpha * (0.42 + 0.58 * cov));
       prio[i] = level;
     }
