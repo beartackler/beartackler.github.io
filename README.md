@@ -245,7 +245,7 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   **People are drawn as solid silhouettes, never as stick figures.** A limb at
   this size is one cell wide, and three parallel one-cell lines beside the rim
   of a stone arrive as gravel. Sisyphus is a drawn torso profile, a head and
-  eight tapered limb segments, filled bright and then cut into four times.
+  eight tapered limb segments, with nothing inside any of them.
 
   **Nothing is filled except people.** A dim fill still puts a character in
   every cell, and two thousand of them is a wall, not a shadow. The boulder is
@@ -263,34 +263,58 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
 
   Three slides are worth their own note.
 
-  Sisyphus took three passes and each one failed differently. Traced from a
-  silhouette he came back as a single blob, because a silhouette of a man, a
-  boulder and a slope is one connected black region. Built from straight
-  tapered limbs he came back as a mannequin: a two-width taper is a cone, and a
-  figure assembled from cones has no concave stretch anywhere on it. Real
-  silhouettes are runs of bulges with hollows between them, and the hollows are
-  the part that reads — a calf is widest a third of the way down and then
-  closes to an ankle a third its width, and that one inward curve does more for
-  "this is a person" than any amount of interior line work. So limbs are
-  sampled at five widths along the bone and the sides run through all of them.
+  Sisyphus took five passes and the useful failures were the last two.
 
-  The third failure was arithmetic. Joints were drawn with `circle()`, whose
-  second argument is the segment count and not a second radius — so every joint
-  was a true circle at the radius given, a thirty-unit ball at the hip and a
-  twenty-four at the knee. Six round cells at a knee is not a knee, and eight
-  of them down one figure is why he read as convex everywhere.
+  The first three were drawing problems. Traced from a silhouette he came back
+  as a single blob, because a silhouette of a man, a boulder and a slope is one
+  connected black region. Built from straight tapered limbs he came back as a
+  mannequin: a two-width taper is a cone, and a figure assembled from cones has
+  no concave stretch anywhere on it. Real silhouettes are runs of bulges with
+  hollows between them, and the hollows are the part that reads — a calf is
+  widest a third of the way down and then closes to an ankle a third its width.
+  So limbs are swept along a bone through a list of widths, and the list is
+  interpolated with a Catmull–Rom rather than linearly, because nine
+  measurements joined by straight lines put a kink in the edge on nearly every
+  row, and nine kinks is a potato.
 
-  He is also side-on, which rules out the obvious way to draw a strong man.
-  There is no shoulder span to show from the side; in profile the mass is all
-  depth. Trapezius from the skull to the point of the shoulder, a chest that
-  stands out in front of the arm, a lat that flares behind the armpit and cuts
-  in hard at the waist. Thirteen cells of chest over eight of waist, which is
-  as much V as a character grid will hold. The near arm gets a reserved line —
-  its own outline drawn at tone zero one cell wide, immediately before it is
-  filled — because it crosses a chest at the same tone as itself, and the ramp's
-  top rung is wide enough that an arm has to fall to 0.85 before it changes
-  glyph at all, by which point the nearest limb on the figure is dimmer than
-  his back.
+  The fourth was arithmetic. Joints were drawn with `circle()`, whose second
+  argument is the segment count and not a second radius — so every joint was a
+  true circle at the radius given, a thirty-unit ball at the hip and a
+  twenty-four at the knee. Six round cells at a knee is not a knee.
+
+  The fifth was not about the drawing at all. `band` gives a slide four fifths
+  of the plane's width and whatever rows are left after its caption, and takes
+  the smaller of the two — so a nearly square artwork is height-limited and
+  never claims the width it was offered. At 1080×848 this one resolved to
+  ninety columns of the hundred and twenty-eight available, and a man drawn
+  across a third of ninety columns has a head three rows tall. No amount of
+  anatomy fixes a head three rows tall. Recomposed at 1080×620 the two limits
+  meet, the picture takes the full width, and everything in it is drawn a third
+  larger. **Check what a picture actually resolves to before redrawing it.**
+
+  Then the proportions, which is where the potato really came from. Measured in
+  heads at eight of them — seat to neck 3.4, upper arm 1.4, forearm 1.15, thigh
+  1.9, shin 1.75, foot 1.05 — the torso had been carrying half again the depth
+  a chest has, so there was nothing for the waist to be narrower *than*. He is
+  side-on, which rules out the obvious way to draw someone strong: there is no
+  shoulder span to show from the side, and in profile mass is a thing you can
+  only state by taking it away somewhere else.
+
+  Where the arm meets the body took four goes on its own. The flat cap at the
+  start of a limb is half its width long, so a shoulder joint set high puts
+  that cap — and the reserved line drawn round it — straight through a neck
+  four cells wide, and the head comes away from the body; set low, the same cap
+  slices the chest and the widest part of the figure arrives as two six-cell
+  lumps with a gutter between them. Four fifths of the way up leaves a rung and
+  a half of clear neck above it, and a visible neck is worth more than an
+  accurate one: it is the cue that turns a lump with a bump on top into a head
+  on a body.
+
+  Two parts get a reserved line and no more: the near thigh, which lies over
+  the torso and the far thigh, and the near upper arm, which lies over the
+  chest and passes under the jaw. A line drawn where nothing needed separating
+  is not a line, it is a hole — the head with one came away from its own neck,
+  and the ankle with one came away from its own foot.
 
   Wall·E was traced from a pen sketch three times before being built by hand,
   and the failure is instructive: a hatched drawing is tonally almost uniform —
