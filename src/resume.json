@@ -201,18 +201,18 @@
     ],
     "credit": "captain mccrea · wall·e, 2008"
   },
-  "dorian": {
-    "lines": [
-      "it is the spectator, and not life,",
-      "that art really mirrors."
-    ],
-    "credit": "oscar wilde · the picture of dorian gray, 1891"
-  },
   "iron": {
     "lines": [
       "friends may come and go.",
       "but two hundred pounds is always two hundred pounds."
     ],
     "credit": "henry rollins · the iron and the soul, 1994"
+  },
+  "hole": {
+    "lines": [
+      "any damn fool can make something complex.",
+      "it takes a genius to make something simple."
+    ],
+    "credit": "pete seeger"
   }
 }

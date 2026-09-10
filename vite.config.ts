@@ -146,7 +146,7 @@ function esc(s: string): string {
  * slide cannot end up drawn but unreadable — or credited in the document and
  * missing from the page.
  */
-const QUOTES = ['coda', 'drive', 'sisyphus', 'iron', 'walle', 'dorian'];
+const QUOTES = ['coda', 'drive', 'sisyphus', 'iron', 'walle', 'hole'];
 
 export default defineConfig({
   plugins: [resumeDocument()],

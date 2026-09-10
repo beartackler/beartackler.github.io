@@ -54,11 +54,14 @@ export type Scene = {
  *
  * The running order is an argument, not a playlist: purpose, then speed, then
  * the labour underneath it, then the honesty of that labour, then living
- * rather than surviving, and finally the mirror.
+ * rather than surviving, and finally the case for simplicity — made by the
+ * most extreme object anyone has described, which takes three numbers.
  *
  * Holds are never shorter than half a viewport. Below that a fast scroll can
  * cross one inside a single inertial fling, which is the failure this whole
- * structure exists to prevent.
+ * structure exists to prevent. The last one is longer again: it is the only
+ * picture that is still moving once it has arrived, and a hold that ends
+ * before the disc has turned is a hold that showed you a photograph.
  */
 const SHORT: Beat = { enter: 0.5, hold: 0.55, exit: 0.3 };
 
@@ -68,7 +71,7 @@ export const SCENES: Scene[] = [
   { id: 'sisyphus', beat: SHORT, quote: 'sisyphus' },
   { id: 'iron', beat: SHORT, quote: 'iron' },
   { id: 'walle', beat: SHORT, quote: 'walle' },
-  { id: 'dorian', beat: { enter: 0.5, hold: 0.65, exit: 0.35 }, quote: 'dorian' },
+  { id: 'hole', beat: { enter: 0.5, hold: 0.75, exit: 0.35 }, quote: 'hole' },
   // The way out. Six pictures used to end in an empty black page: the visitor
   // who scrolled the whole thing — the most engaged one there is — arrived at
   // nothing, with the counter still insisting there were six of six. It has no

@@ -668,49 +668,192 @@ export const WALLE_ART: Art = {
   ],
 };
 
-// ── Dorian Gray ────────────────────────────────────────────────────────────
-// An empty frame, which is the joke: the last image on a page about a person
-// is a portrait with nobody in it, under a line about the fact that what you
-// see in a picture is yourself.
+// ── The black hole ─────────────────────────────────────────────────────────
+// The closing image, and the one thing on the page that never stops moving.
+//
+// It is here for the physics rather than the spectacle. A black hole is the
+// most extreme object anyone has ever described and the description is three
+// numbers long — mass, spin, charge, and nothing else survives falling in.
+// That is what the line under it is about, and it is why this is the last
+// picture instead of the flashiest one.
+//
+// Everything you can see of one is bent light. The disc is a flat ring around
+// the equator, and it looks like a lens because the far half of it is lifted
+// over the top of the shadow by the hole's own gravity — you are seeing the
+// underside of the orbit behind it, folded up into view. The near half stays
+// flat and crosses in front. Both are drawn here, and the fold is the whole
+// reason the thing is recognisable.
 
-const corner = (x: number, y: number, sx: number, sy: number): Art['shapes'] => [
-  { tone: 0.9, stroke: 1.8, open: true, d: [x, y + 72 * sy, x, y, x + 72 * sx, y] },
-  { tone: 0.6, stroke: 1.5, d: circle(x + 34 * sx, y + 34 * sy, 17, 14) },
-];
+const HX = 540;
+const HY = 300;
+/** Radius of the shadow, and of the ring of light grazing it. */
+const H_SHADOW = 130;
+const H_RING = 118;
+/** Inner and outer edge of the disc, as distances in the orbital plane. */
+const DISC_IN = 205;
+const DISC_OUT = 400;
 
-/** Dust in the air of a room nobody comes into. */
-function motes(): Art['shapes'] {
-  const rand = rng(18910620);
-  const pts: number[] = [];
-  for (let i = 0; i < 110; i++) pts.push(rand() * 640, rand() * 900);
-  return [{ tone: 0.09, specks: true, d: pts }];
+/**
+ * Where a point orbiting at distance `a` and phase `ph` appears on the page.
+ *
+ * The two halves obey different rules, and that asymmetry is the picture. The
+ * near half — swinging toward the viewer — just flattens, because the disc is
+ * seen from twenty-odd degrees above its own plane; it opens into a wide
+ * ellipse whose front edge crosses the shadow low down.
+ *
+ * The far half does not recede. Light leaving the back of the disc is bent up
+ * and over the hole and arrives from above it, so the whole of the far side —
+ * every radius of it — folds into one narrow band standing just clear of the
+ * shadow's top. That is why apparent height barely grows with distance here:
+ * the outer orbits are not higher up the page, they are stacked into the same
+ * arc. Everything you can see of a black hole is bent light, and this is the
+ * piece of bending that makes one recognisable.
+ */
+function orbit(a: number, ph: number): [number, number] {
+  const s = Math.sin(ph);
+  const rise = s > 0 ? a * 0.5 : 150 + (a - DISC_IN) * 0.13;
+  return [HX + a * Math.cos(ph), HY + rise * s];
 }
 
-export const DORIAN_ART: Art = {
-  w: 640,
-  h: 900,
-  shapes: [
-    ...motes(),
-    // A skirting line, so the frame is hanging in a room rather than floating
-    // in space. The one thing the picture needed was somewhere to be.
-    { tone: 0.3, stroke: 1.4, open: true, d: [0, 884, 640, 884] },
-    // Two mouldings with air between them. Three, at the fifty units apart the
-    // first draft used, is under four cells for the lot: they merge into one
-    // striped band and the frame stops being carved and starts being a border.
-    { tone: 1, stroke: 2.8, d: [40, 40, 600, 40, 600, 820, 40, 820] },
-    { tone: 0.6, stroke: 1.8, d: [128, 128, 512, 128, 512, 732, 128, 732] },
-    // Nothing inside at all. A "faint wash" does not exist on this grid: the
-    // dimmest tone still puts a character in every cell, so it arrives as
-    // texture rather than as air and the frame ends up looking like a barcode.
-    // The canvas is empty, which is also the joke.
-    ...corner(40, 40, 1, 1),
-    ...corner(600, 40, -1, 1),
-    ...corner(600, 820, -1, -1),
-    ...corner(40, 820, 1, -1),
-    // The hanging wire.
-    { tone: 0.5, stroke: 1.5, open: true, d: [320, 4, 40, 40] },
-    { tone: 0.5, stroke: 1.5, open: true, d: [320, 4, 600, 40] },
-  ],
+/**
+ * Doppler beaming: the side of the disc rotating toward you is brighter.
+ *
+ * Not a stylistic choice, and not a small effect either — in the real thing
+ * one side outshines the other by a factor that puts them on different rungs
+ * of any ramp you like. Pulled in hard here all the same, because a ramp with
+ * eight rungs spends five of them before the far side disappears, and half a
+ * black hole is not a black hole.
+ */
+function beam(ph: number): number {
+  return 0.56 + 0.44 * (0.5 - 0.5 * Math.cos(ph));
+}
+
+/** One segment of one orbit: fixed radius and fixed place in the queue. */
+type Arc = { a: number; ph0: number; span: number; heat: number; rate: number };
+
+/**
+ * The disc, as eight concentric orbits cut into dashes.
+ *
+ * The first version scattered ninety short strokes at random radii, and it
+ * came out as confetti — the same failure the boulder had before its pitting
+ * was made concentric. Marks that run *around* something describe it; the
+ * same marks at random describe dirt. So these are laid out one orbit at a
+ * time, every segment on an orbit joining the next, with about a quarter of
+ * them dropped to leave gaps. The gaps are load-bearing: a complete circle
+ * turned about its own centre is indistinguishable from a complete circle
+ * standing still, so without them the spin would be invisible.
+ */
+const ARCS: Arc[] = (() => {
+  const rand = rng(19151125);
+  const out: Arc[] = [];
+  const RINGS = 7;
+  for (let i = 0; i < RINGS; i++) {
+    const u = i / (RINGS - 1);
+    const a = DISC_IN + (DISC_OUT - DISC_IN) * Math.pow(u, 1.25);
+    const steps = 26;
+    const step = (Math.PI * 2) / steps;
+    const phase = rand() * Math.PI * 2;
+    for (let k = 0; k < steps; k++) {
+      if (rand() < 0.26) continue;
+      out.push({
+        a,
+        ph0: phase + k * step,
+        // A shade over one step, so neighbours meet rather than nearly meet.
+        span: step * 1.08,
+        heat: 1 - 0.28 * u,
+        // Kepler: the inner edge laps the outer one three times over. Drawn as
+        // one rigid wheel it looks like a wheel; sheared, it looks like
+        // something falling in.
+        rate: Math.pow(a / DISC_IN, -1.5),
+      });
+    }
+  }
+  return out;
+})();
+
+/**
+ * The disc, redrawn each frame, turning. Innermost orbit comes round in about
+ * nine seconds and the outermost takes half a minute.
+ *
+ * Ordered here rather than in `shapes`, because the order is the picture: the
+ * far half of the disc, then the shadow punched out of it, then the ring of
+ * light around the shadow, then the near half over the top of all three.
+ * Drawn in any other order the hole stops being in front of anything.
+ */
+function accretion(t: number): Art['shapes'] {
+  const far: Art['shapes'] = [];
+  const near: Art['shapes'] = [];
+  const turn = (t / 9000) * Math.PI * 2;
+  for (const arc of ARCS) {
+    const ph = arc.ph0 + turn * arc.rate;
+    const d: number[] = [];
+    for (let k = 0; k <= 4; k++) d.push(...orbit(arc.a, ph + (k / 4) * arc.span));
+    const shape = {
+      tone: beam(ph + arc.span * 0.5) * arc.heat,
+      stroke: 1.1,
+      open: true,
+      d,
+    };
+    (Math.sin(ph + arc.span * 0.5) > 0 ? near : far).push(shape);
+  }
+  return [
+    ...far,
+    // The shadow. Not a dark fill — a hole. Drawing the same geometry at tone
+    // zero takes those cells back to the page, which is the only black on this
+    // grid that is actually black.
+    { tone: 0, d: circle(HX, HY, H_SHADOW) },
+    // The ring of light grazing the horizon: photons that have gone most of
+    // the way round the hole and come back out toward us. Dim all the way and
+    // full strength on the side turning our way, the same beaming as the disc.
+    { tone: 0.78, stroke: 1.8, d: circle(HX, HY, H_RING) },
+    {
+      tone: 1,
+      stroke: 2.2,
+      open: true,
+      d: circle(HX, HY, H_RING, 26, Math.PI * 0.5, Math.PI * 1.5),
+    },
+    ...near,
+  ];
+}
+
+/**
+ * Stars, thinned toward the hole.
+ *
+ * Not because they are not there. Light passing close is swept aside, so the
+ * sky immediately around a black hole is emptier than the sky anywhere else,
+ * and the missing stars pile up into the ring further out. Two densities, and
+ * a handful of tangential dashes where they pile up.
+ */
+function stars(): Art['shapes'] {
+  const rand = rng(19160302);
+  const far: number[] = [];
+  const near: number[] = [];
+  for (let i = 0; i < 620; i++) {
+    const x = rand() * 1080;
+    const y = rand() * 620;
+    const r = Math.hypot(x - HX, (y - HY) * 1.9);
+    if (r < 190 || rand() > Math.min(1, r / 420)) continue;
+    (rand() < 0.24 ? near : far).push(x, y);
+  }
+  const arcs: Art['shapes'] = [];
+  for (let i = 0; i < 16; i++) {
+    const a = 420 + rand() * 120;
+    const ph = rand() * Math.PI * 2;
+    const d: number[] = [];
+    for (let k = 0; k <= 3; k++) {
+      const p = ph + (k / 3 - 0.5) * 0.13;
+      d.push(HX + Math.cos(p) * a, HY + Math.sin(p) * a * 0.62);
+    }
+    arcs.push({ tone: 0.16, stroke: 1, open: true, d });
+  }
+  return [{ tone: 0.09, specks: true, d: far }, { tone: 0.2, specks: true, d: near }, ...arcs];
+}
+
+export const HOLE_ART: Art = {
+  w: 1080,
+  h: 620,
+  shapes: stars(),
+  live: accretion,
 };
 
 // ── The iron ───────────────────────────────────────────────────────────────
@@ -878,5 +1021,5 @@ export const GALLERY: Record<string, Art> = {
   sisyphus: SISYPHUS_ART,
   iron: IRON_ART,
   walle: WALLE_ART,
-  dorian: DORIAN_ART,
+  hole: HOLE_ART,
 };

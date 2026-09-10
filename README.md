@@ -35,7 +35,7 @@ characters, with a line under it:
 3. a man under a boulder on a slope — Camus
 4. a loaded bar, seen down its own length — Rollins
 5. a robot holding the last plant on Earth, in a boot — Wall·E
-6. an empty portrait frame — Wilde
+6. a black hole, turning — Seeger
 
 Then the way out: the blinking block the page opened with, alone in the dark
 again, over an email address and two links. Six drawings used to end in an
@@ -46,10 +46,16 @@ them and a way to get in touch.
 
 The order is an argument rather than a playlist: purpose, then speed, then the
 labour underneath it, then the honesty of that labour, then living rather than
-surviving, and finally the mirror. Every line is quoted from a primary source
-and dated; where provenance runs only to quote aggregators the line does not
-get used, which is why the bodybuilding slide is Rollins in *Details* in 1994
-and not a physique influencer.
+surviving, and finally the case for simplicity — made by the most extreme
+object anyone has described, which takes three numbers.
+
+Lines are quoted from a primary source and dated wherever one exists, and where
+provenance runs only to quote aggregators the credit gets no work and no year —
+which is why the bodybuilding slide is Rollins in *Details* in 1994 and the
+racing line is bare "mario andretti". The closing line is the weakest of them:
+it is attributed to Pete Seeger everywhere it appears and to a primary source
+nowhere. It is credited to him anyway, and specifically not to Einstein, who is
+the usual misattribution and did not say it.
 
 There were eight. A wrestling ring and Pandora's jar were cut, not because the
 quotes were weak but because neither picture ever became the thing it was of: a
@@ -259,7 +265,7 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   frame, and most of what it had that the others lacked was air with something
   in it: a hill with nothing on it is a diagonal line, and a hill with scree on
   it is a hill. So there is chalk over the bar, grit under Wall·E, dust in
-  Dorian's empty room, and rays across Sisyphus' sky.
+  a star field around the black hole, and rays across Sisyphus' sky.
 
   Three slides are worth their own note.
 
@@ -347,11 +353,35 @@ The whole page is one `<canvas>` character grid, roughly 160 × 58 cells.
   far more convincing disc, and thirteen cells across, which is not enough room
   for a rim, a lip, a hub and six grip holes.
 
-  One thing on the page is deliberately alive during a hold: the sprout in
+  Two things on the page are deliberately alive during a hold. The sprout in
   Wall·E's boot leans about two degrees either way over eleven seconds, under a
-  line about the difference between surviving and living. `Art.live` regenerates
-  those few shapes each frame; everything load-bearing stays static, so a still
-  capture of the hold is indistinguishable from any other.
+  line about the difference between surviving and living; the black hole's disc
+  never stops. `Art.live` regenerates those shapes each frame and everything
+  load-bearing stays static, so a still capture of the sprout's hold is
+  indistinguishable from any other. The hole is the exception to that and the
+  only one — it is the last picture, and its own hold is a tenth of a viewport
+  longer than the rest, because a hold that ends before the disc has turned is
+  a hold that showed you a photograph.
+
+  The disc is drawn as seven concentric orbits cut into dashes, and both halves
+  of that sentence are load-bearing. Concentric, because the first version
+  scattered ninety strokes at random radii and came out as confetti — the same
+  failure the boulder had before its pitting was made to follow the curvature.
+  Cut into dashes, because a complete circle turned about its own centre is
+  indistinguishable from a complete circle standing still, so the gaps are the
+  only reason you can see it move. They turn differentially, on Kepler's
+  three-halves power, so the inner edge laps the outer one three times over: as
+  one rigid wheel it reads as a wheel, sheared it reads as something falling in.
+
+  The lens shape is not stylisation. The near half of the disc flattens the way
+  any tilted ring does, but light leaving the *far* half is bent up and over
+  the hole and arrives from above it, so every radius of the far side folds
+  into one narrow band standing clear of the shadow's top rather than hiding
+  behind it. And the side rotating toward you outshines the other by enough to
+  put them on different rungs of any ramp; pulled back hard here, because eight
+  rungs is not many and half a black hole is not a black hole. The shadow
+  itself is drawn at tone zero — a hole punched in what is behind it, which on
+  this grid is the only black that is actually black.
 - **`src/flame.ts`** — the exhaust plume.
 - **`src/blockfont.ts`** — a 5-row bitmap face whose pixels are grid cells, so the
   display type is made of the same characters as the body text.

@@ -346,8 +346,8 @@ function placeChrome(): void {
  * Puts a closing line at a column and row, then pulls it back onto the plane
  * if it does not fit.
  *
- * The credits are set `nowrap` — "oscar wilde · the picture of dorian gray,
- * 1891" broken over two lines is worse than a slightly narrower margin — so on
+ * The credits are set `nowrap` — "albert camus · the myth of sisyphus, 1942"
+ * broken over two lines is worse than a slightly narrower margin — so on
  * a narrow window the nominal column runs the line off the right-hand edge.
  * Nothing else on the page can tell you that has happened, because a canvas
  * does not overflow.
