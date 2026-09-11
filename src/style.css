@@ -24,11 +24,6 @@
      handover read as deliberate when they briefly do. */
   --bloom: oklch(0.78 0.15 357);
   --bloom-deep: oklch(0.57 0.205 8);
-  /* The only living green on the page, and it has one job: the sprout in
-     Wall·E's boot. Kept off the plum's chroma so the two never read as the
-     same accent, and light enough at 0.79 to carry a stem one cell wide. */
-  --leaf: oklch(0.79 0.155 146);
-  --leaf-deep: oklch(0.58 0.13 152);
   /* Wood recedes so the blossom carries the composition; bright bark turns the
      branch into scratches competing with the flowers. Bone at low brightness,
      not a hue of its own — act two is black, bone and plum, and nothing else. */

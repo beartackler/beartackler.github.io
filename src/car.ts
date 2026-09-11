@@ -4,7 +4,7 @@
  * Vite builds index.html only, so this ships nothing.
  *
  *   /car.html               the R8 at a few sizes
- *   /car.html?art=walle     any other slide, by scene id
+ *   /car.html?art=hole      any other slide, by scene id
  *   /car.html?m=tone        raw alpha, no ramp
  *   /car.html?w=90          force a width in cells
  *   /car.html?only=3-9      a slice of the shape list, for bisecting
@@ -29,7 +29,6 @@ const palette: Palette = {
   display: c('--display'), ink: c('--ink'), dim: c('--ink-dim'), muted: c('--muted'),
   glow: c('--glow'), glowHot: c('--glow-hot'), bark: c('--bark'),
   bloom: c('--bloom'), bloomDeep: c('--bloom-deep'),
-  leaf: c('--leaf'), leafDeep: c('--leaf-deep'),
 };
 
 const CELL_W = 9;

@@ -53,9 +53,12 @@ export type Scene = {
  * before it can be looked at. The rest are single images and need less.
  *
  * The running order is an argument, not a playlist: purpose, then speed, then
- * the labour underneath it, then the honesty of that labour, then living
- * rather than surviving, and finally the case for simplicity — made by the
+ * the labour underneath it, and finally the case for simplicity — made by the
  * most extreme object anyone has described, which takes three numbers.
+ *
+ * It was six pictures and is four. The iron and Wall·E came out because they
+ * did not mean enough to the person whose page this is, which is the only
+ * criterion that matters here and beats any amount of work already done.
  *
  * Holds are never shorter than half a viewport. Below that a fast scroll can
  * cross one inside a single inertial fling, which is the failure this whole
@@ -69,8 +72,6 @@ export const SCENES: Scene[] = [
   { id: 'ikigai', beat: { enter: 1.15, hold: 0.7, exit: 0.45 }, quote: 'coda' },
   { id: 'r8', beat: { enter: 1.0, hold: 0.8, exit: 0.45 }, quote: 'drive' },
   { id: 'sisyphus', beat: SHORT, quote: 'sisyphus' },
-  { id: 'iron', beat: SHORT, quote: 'iron' },
-  { id: 'walle', beat: SHORT, quote: 'walle' },
   { id: 'hole', beat: { enter: 0.5, hold: 0.75, exit: 0.35 }, quote: 'hole' },
   // The way out. Six pictures used to end in an empty black page: the visitor
   // who scrolled the whole thing — the most engaged one there is — arrived at

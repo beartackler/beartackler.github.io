@@ -31,8 +31,6 @@ const DRAW_ORDER = [
   Sheet.Bark,
   Sheet.Bloom,
   Sheet.BloomDeep,
-  Sheet.Leaf,
-  Sheet.LeafDeep,
 ];
 
 /**

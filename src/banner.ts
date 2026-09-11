@@ -121,8 +121,6 @@ async function draw(): Promise<void> {
     bark: token('--bark'),
     bloom: token('--bloom'),
     bloomDeep: token('--bloom-deep'),
-    leaf: token('--leaf'),
-    leafDeep: token('--leaf-deep'),
   };
   const charset = [...new Set([...grid.values()].map((v) => v.code))];
   // dpr 1: the output is the final size, so the pixel art stays pixel-exact
