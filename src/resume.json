@@ -127,7 +127,8 @@
       "award": "Grad Certificate, Product Mgmt",
       "awardFull": "Graduate Certificate in Product Management",
       "when": "2026–2027",
-      "whenFull": "Expected: Sept. 2026 – April 2027"
+      "whenFull": "Expected: Sept. 2026 – April 2027",
+      "withheld": true
     }
   ],
   "makes": [

@@ -9,7 +9,14 @@ type Role = {
   whenFull: string;
   detail: string[];
 };
-type Study = { school: string; awardFull: string; extra?: string; whenFull: string };
+type Study = {
+  school: string;
+  awardFull: string;
+  extra?: string;
+  whenFull: string;
+  /** Baked into the document for everyone; removed at runtime in Europe and Russia. */
+  withheld?: boolean;
+};
 
 /**
  * Bakes a real, semantic resume into index.html at build time from the same
@@ -31,7 +38,7 @@ function resumeDocument(): Plugin {
           </article>`;
 
       const study = (s: Study) => `
-          <article>
+          <article${s.withheld ? ' data-withhold' : ''}>
             <h3>${esc(s.school)}</h3>
             <p class="meta">${esc(s.awardFull)}${s.extra ? ` · ${esc(s.extra)}` : ''} · ${esc(s.whenFull)}</p>
           </article>`;
@@ -40,12 +47,12 @@ function resumeDocument(): Plugin {
     <main id="doc" tabindex="-1">
       <header>
         <h1>${esc(p.properName)}</h1>
-        <p class="meta">
-          <a href="mailto:${esc(p.email)}">${esc(p.email)}</a> ·
-          <a href="tel:${esc(p.phoneHref)}">${esc(p.phone)}</a> ·
-          <a href="${esc(p.githubHref)}">${esc(p.github)}</a> ·
-          <a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a> ·
-          <a href="${esc(p.resume)}">resume.pdf</a>
+        <p class="meta bits">
+          <span data-withhold><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></span>
+          <span data-withhold><a href="tel:${esc(p.phoneHref)}">${esc(p.phone)}</a></span>
+          <span><a href="${esc(p.githubHref)}">${esc(p.github)}</a></span>
+          <span><a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a></span>
+          <span data-withhold><a href="${esc(p.resume)}">resume.pdf</a></span>
         </p>
       </header>
       <section><h2>Now</h2>${data.now.map(role).join('')}</section>
@@ -80,6 +87,11 @@ function resumeDocument(): Plugin {
       // just scrolled through the whole gallery should not have to scroll back
       // up to find out how to get in touch.
       //
+      // The header's contacts are spans with their separators in CSS rather than
+      // in the markup, because some of them are removed at runtime for visitors
+      // in Europe and Russia and a middot baked between two anchors outlives the
+      // anchor it was separating.
+      //
       // These links are real: in the tab order, in the accessibility tree, and
       // announced. `visibility: hidden` takes the whole block out of both until
       // the scroll brings it in, which is what stops a screen reader meeting a
@@ -91,12 +103,12 @@ function resumeDocument(): Plugin {
       <p class="outro-lede">that's all of it.</p>
       <p class="outro-rule" aria-hidden="true">...'''::::---===+++**##@@##**+++===---::::'''...</p>
       <ul class="outro-links">
-        <li><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></li>
+        <li data-withhold><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></li>
         <li><a href="${esc(p.githubHref)}">${esc(p.github)}</a></li>
         <li><a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a></li>
       </ul>
       <p class="outro-acts">
-        <a href="${esc(p.resume)}" target="_blank" rel="noopener">resume.pdf</a>
+        <a href="${esc(p.resume)}" target="_blank" rel="noopener" data-withhold>resume.pdf</a>
         <button id="to-top" type="button">back to the top</button>
       </p>
     </div>`;

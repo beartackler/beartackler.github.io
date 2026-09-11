@@ -7,7 +7,7 @@
  */
 
 import { BLOCK_ROWS, blockRows, blockWidth } from './blockfont';
-import { BEFORE, EDU, MAKES, NOW, PERSON, type Role } from './resume';
+import { BEFORE, EDU, MAKES, NOW, PERSON, WITHHOLD, type Role } from './resume';
 
 /**
  * Cell height as a multiple of cell width. Block type is 5 cells tall, so this
@@ -250,12 +250,18 @@ function paintMakes(d: Draft, x: number, row: number): number {
 
 function paintReach(d: Draft, x: number, row: number): number {
   let y = row;
-  d.link(x, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
-  d.link(x, y++, PERSON.phone, `tel:${PERSON.phoneHref}`, Tone.Dim);
+  // Mail and telephone come out for a withheld visitor; the two profiles stay,
+  // so REACH is still a way to reach him rather than a heading over nothing.
+  if (!WITHHOLD) {
+    d.link(x, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
+    d.link(x, y++, PERSON.phone, `tel:${PERSON.phoneHref}`, Tone.Dim);
+  }
   d.link(x, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
   d.link(x, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
-  y += 1;
-  d.link(x, y++, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
+  if (!WITHHOLD) {
+    y += 1;
+    d.link(x, y++, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
+  }
   return y;
 }
 
@@ -401,12 +407,15 @@ export function composeCard(cols: number, minRows = 0, reserveRows = 0): Plane {
   // Reach first. On a phone the thing being looked for is usually a way to
   // get in touch, and putting it at the top costs the rest of the page one
   // screenful of scrolling that it does not need.
-  d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
+  if (!WITHHOLD) d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
   d.link(x0, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
   d.link(x0, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
+  if (!WITHHOLD) {
+    y += 1;
+    d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Accent);
+    y += 2;
+  }
   y += 1;
-  d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Accent);
-  y += 3;
 
   y = d.block(x0, y, 'NOW', Tone.Display) + 2;
   for (const r of NOW) y = roleBlock(d, x0, y, r) + 1;

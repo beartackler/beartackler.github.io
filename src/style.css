@@ -838,6 +838,14 @@ body.card #outro {
   line-height: 2;
 }
 
+/* Separators between the header's contacts, drawn by CSS rather than written
+   into the markup. Some of those contacts are removed from the DOM on load,
+   and `:first-child` re-resolves after a removal where a baked-in middot does
+   not — written by hand, hiding an address leaves the dot that introduced it. */
+#doc .bits span:not(:first-child)::before {
+  content: ' · ';
+}
+
 #doc ul {
   margin: 0.7rem 0 0;
   padding-left: 1.1rem;

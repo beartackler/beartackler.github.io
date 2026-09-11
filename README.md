@@ -490,7 +490,9 @@ close to read as two, so the page looked like two oranges that didn't match.
 
 - Full resume in `<main>` at all times; the canvas is `aria-hidden`. Its links
   are removed from the tab order, since focus must never land on something
-  invisible; assistive tech reaches them through its own reading cursor.
+  invisible; assistive tech reaches them through its own reading cursor. The
+  one exception is the withheld set below, which is removed from the DOM rather
+  than hidden with CSS — precisely so it leaves the accessibility tree too.
 - The poster is sized to fit the viewport in both axes, so act one does not
   scroll and scrolling means the second act and nothing else. A screen too
   small even at a 4px cell scrolls to read the resume and is not offered the
@@ -507,6 +509,51 @@ close to read as two, so the page looked like two oranges that didn't match.
   the mark rather than made to earn it. The second act is driven by scroll
   position rather than by time, so it plays the same either way.
 - Print stylesheet renders a clean two-page resume.
+
+## Who sees what
+
+Contact detail — email, telephone, the link to the PDF — and one graduate
+certificate are held back from visitors in Europe and Russia, and from anyone
+whose browser asks for Russian ahead of English. GitHub and LinkedIn stay, so
+REACH is still a way to reach him rather than a heading over nothing.
+
+`src/region.ts` resolves that from two signals already in the browser and makes
+no request for either. The IANA timezone — `Europe/Moscow`, `America/New_York` —
+is the device's own clock, and it answers *where*. `navigator.languages` is
+ordered by preference and answers *what they read*; "is Russian in the list"
+is the wrong test, because an English machine with Russian installed reports
+`['en-US', 'ru']` and is asking for English. The first tag that is either
+language wins. Russia is twenty-six zone names across eleven offsets and nine
+of them begin `Asia/`, so that is a list rather than a prefix test; Europe is a
+prefix, and it is the continent — the UK, Norway, Switzerland, Ukraine and
+Istanbul included — because the question is distance from Boston and not a
+trade bloc.
+
+Neither signal is IP geolocation, and that is deliberate. A geolocation API
+costs a round trip to a third party before first paint, adds a dependency to a
+page that currently makes **zero** external requests, and is blockable in
+several of the places this is meant to be polite to. A VPN does not move a
+clock; a week in Berlin does. That is the right trade for something that is
+courtesy rather than access control.
+
+**What this is not.** It is a display filter, and the distinction matters:
+
+- The same `index.html` is served to everyone. Every withheld string is still
+  in the page source, still in the JSON-LD a crawler reads, and still one
+  `?region=other` away.
+- `/timur-monasypov-resume.pdf` is a public URL whether or not anything on the
+  page links to it, and the PDF carries the same contacts.
+- Nothing served from a static host could do better. Withholding bytes from a
+  request requires a server that sees the request, and GitHub Pages is not one.
+
+So it stops a visitor in Europe *reading* a telephone number off the page. It
+does not stop anyone who goes looking. `tools/region.mjs` asserts both halves
+across eight timezone-and-language pairs — including that the served HTML is
+still whole, so nobody starts reading this as redaction.
+
+`?region=ru|eu|other` and `?lang=ru|en` override the signals, because otherwise
+the page has to be believed rather than checked, and every test of this would
+be a test of itself.
 
 ## Develop
 

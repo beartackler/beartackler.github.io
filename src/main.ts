@@ -3,6 +3,7 @@ import { Atlas, type Palette } from './atlas';
 import { Blossom } from './blossom';
 import { Field } from './field';
 import { CELL_ASPECT, compose, composeCard, NARROW_COLS, type Plane } from './layout';
+import { WITHHOLD } from './resume';
 import { Clearance, MarkField, markExtent, SPREAD } from './mark';
 import { at, fit, Painter, type Art } from './art';
 import { plume, type Emitter } from './flame';
@@ -1410,6 +1411,14 @@ async function start(): Promise<void> {
   } catch {
     // Fallback monospace still renders a coherent grid.
   }
+  // Before the first frame, and before anything measures the document: the
+  // baked HTML carries everything, and a withheld visitor has the withheld
+  // parts taken out of their copy of it. Out of the DOM rather than hidden
+  // with CSS, so they leave the tab order and the accessibility tree too — a
+  // `display: none` address is still an address a screen reader can be pointed
+  // at, and is still there for anyone who reads the computed styles.
+  if (WITHHOLD) document.querySelectorAll('[data-withhold]').forEach((el) => el.remove());
+
   build();
   document.body.classList.add('ready');
   if (coarse.matches) hintText = 'drag to reveal';
