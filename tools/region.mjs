@@ -55,7 +55,16 @@ for (const [name, timezoneId, locale, withheld] of CASES) {
     await page.waitForTimeout(1600);
 
     const got = await page.evaluate(async () => {
-      const { visitor } = await import('/src/region.ts');
+      // Only reachable under `npm run dev`; against a built site the module is
+      // bundled and the source path is gone. The resolution is reported rather
+      // than asserted, so losing it costs a column and not a test — which is
+      // what lets `ORIGIN=https://beartackler.github.io` run this for real.
+      let visitor = { region: '?', russian: false };
+      try {
+        ({ visitor } = await import('/src/region.ts'));
+      } catch {
+        /* built site */
+      }
       const href = (sel) => [...document.querySelectorAll(sel)].map((a) => a.getAttribute('href'));
       const all = href('a[href]');
       const hot = href('#hotspots a[href]');
