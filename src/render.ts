@@ -5,7 +5,7 @@
  */
 
 import { Atlas, Sheet } from './atlas';
-import { Field } from './field';
+import { Field, LOCK_TIME } from './field';
 import type { LinkRegion, Plane } from './layout';
 
 /**
@@ -13,12 +13,28 @@ import type { LinkRegion, Plane } from './layout';
  * fades out on scroll, so this is a smoothness knob, not just a batching one.
  * Empty buckets are skipped, so the cost of raising it is nil.
  */
-const ALPHA_STEPS = 20;
-const FLOOR = 0.04; // below this a cell is simply dark
+const ALPHA_STEPS = 32;
+const FLOOR = 0.035; // below this a cell is simply dark
 const HAZE_TEXT = 0.78; // haze is stronger over text than over empty field
 const HAZE_EMPTY = 0.52;
 /** Uniform, so a glow that crosses type is no brighter than one that doesn't. */
 const HAZE_FLOOR = 0.62;
+/**
+ * Where the lantern's fringe stops being amber and starts being hot.
+ *
+ * A lamp is whiter at its core than at its edge, and the page has both inks
+ * already. Splitting the haze across them at one threshold is the difference
+ * between a flat orange disc and something with a centre.
+ */
+const HAZE_HOT = 0.62;
+/** How much resolved type spills into the space around it. See `Field.halate`. */
+const HALO = 0.32;
+/**
+ * How much of the decode window the first letter of a word still churns for.
+ * Below 1 every letter gets at least a flicker; at 1 the first one never
+ * scrambles at all and the word looks like it grew a head.
+ */
+const LOCK_STAGGER = 0.82;
 
 /** Sheets are drawn in this order so resolved type sits above the haze. */
 const DRAW_ORDER = [
@@ -143,15 +159,23 @@ export class Renderer {
         // resume fades out in act two, the mark has to be able to win cells
         // the lantern already burned in, or it disintegrates against its own
         // ghost halfway through the journey.
-        const lit = Math.max(field.light[i], field.ink[i]) * fade;
+        //
+        // `live` is the lantern; `lit` is the lantern or the developed page.
+        // The two are kept apart because only one of them is allowed to draw
+        // halftone: a burned-in cell means *developed*, and a developed cell
+        // that still shows fringe glyphs is a permanent smear of garbled
+        // punctuation with no way ever to become a word.
+        const live = field.lit(i) * fade;
+        const lit = Math.max(live, field.ink[i] * fade);
         const l = Math.max(lit, glow);
-        if (l < FLOOR) continue;
+        const spill = field.halo[i] * fade;
+        if (l < FLOOR && spill < FLOOR) continue;
 
         const code = plane.chars[i];
         const isText = code !== 0;
         const run = isText ? plane.runId[i] : -1;
         // Words resolve as words, on their brightest cell.
-        const resolve = run >= 0 ? smoothstep(0.28, 0.55, field.runLight[run]) : 0;
+        const resolve = run >= 0 ? smoothstep(0.24, 0.46, field.runLight[run]) : 0;
         /** How much of the word is actually on screen, fade included. */
         const shown = resolve * fade;
 
@@ -167,14 +191,23 @@ export class Renderer {
         // a glow behind the resume to become the only ink on the page.
         const hazeA = byFloor
           ? l * (1 - shown) * (HAZE_FLOOR + (1 - HAZE_FLOOR) * tint)
-          : lit * (1 - resolve) * (isText ? HAZE_TEXT : HAZE_EMPTY);
-        if (hazeA >= 0.03) {
+          : live * (1 - resolve) * (isText ? HAZE_TEXT : HAZE_EMPTY) +
+            // Type bleeds into the space beside it, never over other type:
+            // spill on an occupied cell would fight the word that owns it.
+            (isText ? 0 : spill * HALO);
+        if (hazeA >= 0.02) {
           // Jitter gives the lantern's haze its grain, but it would scatter the
           // mark's glyphs. The mark also sits at the dense end of the ramp:
           // mid-density punctuation reads as stray text, `#%@` reads as a line.
           // The mark keeps to the dense end of its own ramp, where a cell
           // reads as part of a line; the haze gets the measured ramp and a
           // per-cell jitter, which is what gives it its grain.
+          // Spill is deliberately read at a lower density than the lantern's
+          // own light: the halo wants dots and commas, the faint end of the
+          // ramp, where a cell reads as a grain of light. At the same density
+          // as the fringe it picks `+` and `(` and the gaps between words fill
+          // with things that look like typed characters.
+          const dens = byFloor ? l : Math.max(live, spill * 0.5);
           const ch = byFloor
             ? MARK_RAMP[Math.min(MARK_RAMP.length - 1, Math.floor((0.5 + 0.5 * l) * MARK_RAMP.length))]
             : ramp[
@@ -182,7 +215,7 @@ export class Renderer {
                   0,
                   Math.min(
                     ramp.length - 1,
-                    Math.floor(l * (0.75 + field.seed[i] * 0.5) * ramp.length),
+                    Math.floor(dens * (0.75 + field.seed[i] * 0.5) * ramp.length),
                   ),
                 )
               ];
@@ -194,14 +227,23 @@ export class Renderer {
             if (tint > 0.01) this.push(Sheet.Ink, hazeA * tint, i, ch);
             if (tint < 0.99) this.push(warm, hazeA * (1 - tint), i, ch);
           } else {
-            this.push(Sheet.Glow, hazeA, i, ch);
+            // Hot at the core, amber at the fringe.
+            this.push(dens > HAZE_HOT ? Sheet.GlowHot : Sheet.Glow, hazeA, i, ch, field.dither[i]);
           }
         }
 
         if (!isText || resolve <= 0.02) continue;
 
         // Resolved type, or the brief scramble on the way in.
-        if (field.runLock[run] > 0) {
+        // A word decodes front to back rather than all at once. The lock is
+        // one countdown for the whole run; where a cell sits inside the word
+        // decides how much of it that cell actually serves, so the first
+        // letter settles almost immediately and the last one is still
+        // churning. Flipping every letter on the same frame is a cut, not a
+        // decode — the eye reads it as the word being swapped rather than
+        // arriving.
+        const lock = field.runLock[run];
+        if (lock > 0 && lock > LOCK_TIME * (1 - plane.runPos[i] / plane.runLen[run]) * LOCK_STAGGER) {
           // Offset by the cell's own seed, or neighbours march through the
           // alphabet in lockstep instead of looking like noise.
           const pick =
@@ -230,9 +272,18 @@ export class Renderer {
     this.flush(originX, originY);
   }
 
-  private push(sheet: number, alpha: number, cell: number, code: number): void {
+  /**
+   * `dither` breaks the alpha quantisation.
+   *
+   * Alpha is bucketed so the draw can batch, which means brightness moves in
+   * plateaus — and a plateau boundary drawn across a round pool of light is a
+   * visible concentric ring. Offsetting each cell's rounding by its own blue
+   * noise scatters the boundary into grain instead, which is the same trick
+   * an ordered dither plays on a gradient and costs one add.
+   */
+  private push(sheet: number, alpha: number, cell: number, code: number, dither = 0.5): void {
     const order = DRAW_ORDER.indexOf(sheet as (typeof DRAW_ORDER)[number]);
-    const step = Math.min(ALPHA_STEPS - 1, Math.floor(alpha * ALPHA_STEPS));
+    const step = Math.min(ALPHA_STEPS - 1, Math.floor(alpha * ALPHA_STEPS + dither));
     if (step < 1) return;
     const key = order * ALPHA_STEPS + step;
     this.buckets[key].push(cell);
@@ -250,7 +301,7 @@ export class Renderer {
         const key = order * ALPHA_STEPS + step;
         const cells = this.buckets[key];
         if (cells.length === 0) continue;
-        ctx.globalAlpha = (step + 0.5) / ALPHA_STEPS;
+        ctx.globalAlpha = step / ALPHA_STEPS;
         const codes = this.codes[key];
         for (let n = 0; n < cells.length; n++) {
           const cell = cells[n];

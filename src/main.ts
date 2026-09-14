@@ -25,8 +25,18 @@ const IDLE_HINT = 3000;
 const IDLE_GHOST = 9000;
 /** How long the scroll nudge asks loudly before settling into its idle. */
 const NUDGE_LOUD = 8500;
-const MIN_RADIUS = 7;
-const MAX_RADIUS = 17;
+const MIN_RADIUS = 8;
+const MAX_RADIUS = 16;
+/**
+ * How far a moving lantern is drawn out along its travel.
+ *
+ * A pool that stays a perfect circle however fast it moves reads as a stencil
+ * being slid over the page — the shape is obviously not responding to the
+ * hand. Stretching it along the direction of travel (and narrowing it across,
+ * so the lit area stays the same) is what turns a flick into a streak with a
+ * head, and it costs one dot product per cell.
+ */
+const MAX_STRETCH = 1.9;
 /** Cells per second the idle reader travels along a line of type. */
 const READ_SPEED = 30;
 const PULSE_PERIOD = 2.9;
@@ -118,6 +128,9 @@ function smallScreen(): boolean {
 let target: { c: number; r: number } | null = null;
 let cursor: { c: number; r: number } | null = null;
 let radius = MAX_RADIUS;
+/** Unit travel direction of the lantern, in cell-width space. See MAX_STRETCH. */
+const lanternDir = { c: 1, r: 0 };
+let stretch = 1;
 let lastInput = performance.now();
 let nudgeOn = false;
 let nudgeAt = 0;
@@ -237,9 +250,16 @@ function build(): void {
 
   const cells = plane.cols * plane.rows;
   field = new Field(plane.cols, plane.rows, plane.runCount);
+  // Dev only, and stripped from the build: the harnesses under the scratchpad
+  // assert on ink and resolution per word, which is not a thing a screenshot
+  // can tell you and not a thing worth exposing to the page.
+  if (import.meta.env.DEV) {
+    Object.assign(window as unknown as Record<string, unknown>, { __field: field, __plane: plane });
+  }
   if (previous && previous.cols === plane.cols && previous.rows === plane.rows) {
     field.ink.set(previous.ink);
-    field.light.set(previous.light);
+    field.beam.set(previous.beam);
+    field.trail.set(previous.trail);
   }
 
   markField = new MarkField(plane.cols, plane.rows, cellH / cellW, plane.chars);
@@ -712,7 +732,7 @@ function stepMark(dt: number): void {
     for (let i = 0; i < markMask.length; i++) {
       if (markMask[i] === 0) continue;
       total++;
-      if (painted[i] === 0 && field.light[i] > 0.5) painted[i] = 1;
+      if (painted[i] === 0 && field.lit(i) > 0.5) painted[i] = 1;
       if (painted[i]) done++;
     }
     if (!markComplete && total > 0 && done >= total * 0.85) markComplete = true;
@@ -1040,6 +1060,7 @@ function frame(now: number): void {
     // card writes itself on rather than switching on.
     renderer.fade = reduced.matches ? 1 : Math.min(1, cardAt / 1.15);
     field.resolveRuns(plane.runId, dt);
+    field.halate(plane.runId, plane.chars);
     renderer.draw(originX, originY, bg);
     caret.style.opacity = String(Math.max(0, Math.min(1, cardAt - 0.9)));
     requestAnimationFrame(frame);
@@ -1090,6 +1111,23 @@ function frame(now: number): void {
     const want = MAX_RADIUS - (MAX_RADIUS - MIN_RADIUS) * Math.min(1, speed / 2400);
     radius += (want - radius) * Math.min(1, dt * 8);
 
+    // Direction is smoothed and held: the frame-to-frame delta is zero every
+    // time the hand pauses mid-stroke, and a comet that snaps back to a circle
+    // on every hesitation flickers.
+    const vc = dc;
+    const vr = dr * aspect;
+    const vlen = Math.hypot(vc, vr);
+    if (vlen > 0.004) {
+      const ease = Math.min(1, dt * 14);
+      lanternDir.c += (vc / vlen - lanternDir.c) * ease;
+      lanternDir.r += (vr / vlen - lanternDir.r) * ease;
+      const n = Math.hypot(lanternDir.c, lanternDir.r) || 1;
+      lanternDir.c /= n;
+      lanternDir.r /= n;
+    }
+    const wantStretch = 1 + (MAX_STRETCH - 1) * Math.min(1, speed / 2000);
+    stretch += (wantStretch - stretch) * Math.min(1, dt * 9);
+
     // Stamp along the path so a fast flick leaves a continuous trail. The
     // position keeps tracking even after the lantern has faded out, because
     // the chrome still lights when the pointer comes near it.
@@ -1097,7 +1135,16 @@ function frame(now: number): void {
       const steps = Math.max(1, Math.ceil(distPx / (radius * cellW * 0.35)));
       for (let s = 1; s <= steps; s++) {
         const k = s / steps;
-        field.stamp(cursor.c + dc * k, cursor.r + dr * k, radius, aspect, lanternGain);
+        field.stamp(
+          cursor.c + dc * k,
+          cursor.r + dr * k,
+          radius,
+          aspect,
+          lanternGain,
+          lanternDir.c,
+          lanternDir.r,
+          stretch,
+        );
       }
     }
     cursor.c += dc;
@@ -1109,7 +1156,7 @@ function frame(now: number): void {
   // The cold open is a demo, not the visitor's doing: it must not burn in.
   // A short half-life while booting keeps the pulse a travelling ring rather
   // than letting its wake fill in as a disc.
-  if (!reduced.matches) field.step(dt, hasChar, !booting, booting ? 0.3 : undefined);
+  if (!reduced.matches) field.step(dt, hasChar, !booting);
   lightHoveredLink();
   // Cleared here rather than inside the branch: any scene that draws without
   // one would otherwise inherit the last frame's priorities.
@@ -1123,6 +1170,7 @@ function frame(now: number): void {
   stepSlides(now);
   applyJourney();
   field.resolveRuns(plane.runId, dt);
+  field.halate(plane.runId, plane.chars);
   renderer.draw(originX, originY, bg);
 
   if (now - pctAt > 250) {
@@ -1233,10 +1281,10 @@ function lightHoveredLink(): void {
   const h = renderer.hot;
   if (!h || phases[IKIGAI].in > 0.25) return;
   for (let c = h.col; c < h.col + h.len; c++) {
-    field.light[h.row * plane.cols + c] = 1;
+    field.beam[h.row * plane.cols + c] = 1;
     if (h.row + 1 < plane.rows) {
       const below = (h.row + 1) * plane.cols + c;
-      if (field.light[below] < 0.62) field.light[below] = 0.62;
+      if (field.beam[below] < 0.62) field.beam[below] = 0.62;
     }
   }
 }

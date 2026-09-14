@@ -60,6 +60,10 @@ export type Plane = {
    */
   runId: Int32Array;
   runCount: number;
+  /** How far into its word each cell sits, so a word can decode front to back. */
+  runPos: Uint8Array;
+  /** Cells per word, the denominator for `runPos`. */
+  runLen: Int32Array;
   /** Which runs count as words for the counter; see `bake`. */
   isWord: Uint8Array;
   wordCount: number;
@@ -153,19 +157,19 @@ class Draft {
 
     // Contiguous non-empty cells in a row form one word; spaces break the run.
     const runId = new Int32Array(cols * rows).fill(-1);
+    const runPos = new Uint8Array(cols * rows);
     let runCount = 0;
     for (let r = 0; r < rows; r++) {
-      let open = false;
+      let open = 0;
       for (let c = 0; c < cols; c++) {
         const i = r * cols + c;
         if (chars[i] !== 0) {
-          if (!open) {
-            runCount++;
-            open = true;
-          }
+          if (open === 0) runCount++;
           runId[i] = runCount - 1;
+          runPos[i] = Math.min(255, open);
+          open++;
         } else {
-          open = false;
+          open = 0;
         }
       }
     }
@@ -204,6 +208,8 @@ class Draft {
       caret: caret ?? null,
       runId,
       runCount,
+      runPos,
+      runLen,
       isWord,
       wordCount,
     };
