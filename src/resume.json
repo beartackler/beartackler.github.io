@@ -11,19 +11,20 @@
     "linkedin": "linkedin.com/in/timurmonasypov",
     "linkedinHref": "https://linkedin.com/in/timurmonasypov",
     "resume": "/timur-monasypov-resume.pdf",
-    "summary": "Product & AI. Research assistant at Meronym Labs red-teaming LLMs; previously forward deployed PM at Pegbo. Northeastern University, Boston."
+    "summary": "Product & AI. AI Makerspace Student Fellow at Northeastern; previously forward deployed PM at Pegbo. Northeastern University, Boston."
   },
   "now": [
     {
-      "title": "Research Assistant, AI Safety",
-      "org": "Meronym Labs, Northeastern",
-      "orgFull": "Meronym Labs, Northeastern University",
+      "title": "AI Makerspace Student Fellow",
+      "org": "AI Makerspace, Northeastern",
+      "orgFull": "Northeastern University AI Makerspace, in partnership with Microsoft",
       "where": "Boston, MA",
-      "when": "from Sept 2026",
-      "whenFull": "Sept. 2026 – Present",
+      "when": "from Oct 2026",
+      "whenFull": "Oct. 2026 – Present",
       "detail": [
-        "Red-team proprietary LLMs for safety failures in mental-health contexts, from prompt design to harm coding",
-        "Measure and mitigate accent- and dialect-driven error gaps in ambient clinical scribes for LEP patients"
+        "Scoped AI-native builds for visitors, from model and stack selection to voice agents, RAG, and deployment",
+        "Debugged agent workflows end to end, from prompting and tool calls to evals, model routing, and inference",
+        "Co-designed introductory AI workshops and live tool demos for students, faculty, and staff"
       ]
     }
   ],
@@ -163,7 +164,7 @@
   "skillsFull": [
     [
       "AI",
-      "Agent workflows and interfaces, evals, voice AI, local inference, software factory ideas"
+      "Agent-native development and frameworks, evals, production voice agents, RAG, model routing, local inference"
     ],
     [
       "Tools",
