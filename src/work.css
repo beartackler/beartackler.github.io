@@ -1,0 +1,229 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--glow) 35%, transparent);
+  color: var(--ink);
+}
+
+html {
+  background: var(--bg);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* The text column, in rem so a bigger heading doesn't widen its own line. */
+  --col: 33rem;
+  margin: 0;
+  padding: clamp(2rem, 6vw, 4.5rem) max(1rem, env(safe-area-inset-right)) 4rem
+    max(1rem, env(safe-area-inset-left));
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--grid);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+a,
+button {
+  color: inherit;
+  font: inherit;
+}
+
+a {
+  text-decoration-color: color-mix(in oklch, var(--glow) 60%, transparent);
+  text-underline-offset: 0.25em;
+}
+
+a:hover,
+a:focus-visible,
+button:hover,
+button:focus-visible {
+  color: var(--glow-hot);
+}
+
+:focus-visible {
+  outline: 1px solid var(--glow);
+  outline-offset: 3px;
+}
+
+.top,
+.project > :not(figure, .pair, .strip),
+.end {
+  max-width: var(--col);
+  margin-inline: auto;
+}
+
+.top {
+  margin-bottom: clamp(3rem, 8vw, 6rem);
+}
+
+.back {
+  color: var(--muted);
+}
+
+h1 {
+  margin: 1.5rem 0 0.5rem;
+  color: var(--display);
+  font-size: clamp(2.2rem, 7vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin: 0 0 1rem;
+  color: var(--ink-dim);
+}
+
+#develop-all {
+  appearance: none;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+#develop-all::before {
+  content: '[ ';
+}
+
+#develop-all::after {
+  content: ' ]';
+}
+
+.project {
+  margin-bottom: clamp(4rem, 10vw, 7.5rem);
+}
+
+h2 {
+  margin: 0;
+  color: var(--display);
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+
+.n {
+  margin-right: 1ch;
+  color: var(--glow);
+}
+
+.meta,
+.note {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+.what {
+  margin: 0.9rem auto 1.5rem;
+  color: var(--ink-dim);
+}
+
+.note {
+  margin-top: 0.9rem;
+}
+
+/* ── Frames ───────────────────────────────────────────────────────────── */
+
+.neg {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--muted) 30%, transparent);
+  background: var(--bg);
+  cursor: crosshair;
+}
+
+.neg img,
+.neg video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.neg canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.9s var(--ease);
+}
+
+.neg.printed {
+  cursor: auto;
+}
+
+.neg.printed canvas {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wide,
+.pair {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* A flow reads left to right, so it is laid out that way: one row that
+   scrolls sideways and snaps to each step. Frames keep their own shape inside a
+   shared box, because the screens were different lengths and cropping them
+   to one shape would cut off the part that changed. */
+.strip {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0 calc(-1 * max(1rem, env(safe-area-inset-left)));
+  padding: 0 max(1rem, calc((100vw - var(--col)) / 2)) 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: max(1rem, calc((100vw - var(--col)) / 2));
+  align-items: flex-start;
+  list-style: none;
+  counter-reset: step;
+  scrollbar-color: color-mix(in oklch, var(--muted) 55%, transparent) transparent;
+}
+
+.strip li {
+  flex: none;
+  scroll-snap-align: start;
+  counter-increment: step;
+}
+
+.strip .neg img {
+  width: auto;
+  max-width: min(86vw, 1000px);
+  max-height: min(62vh, 560px);
+}
+
+.strip span {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+
+.strip span::before {
+  content: counter(step, decimal-leading-zero) '  ';
+  color: var(--glow);
+}
+
+.end {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neg canvas {
+    transition: none;
+  }
+}

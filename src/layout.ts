@@ -264,10 +264,9 @@ function paintReach(d: Draft, x: number, row: number): number {
   }
   d.link(x, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
   d.link(x, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
-  if (!WITHHOLD) {
-    y += 1;
-    d.link(x, y++, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
-  }
+  y += 1;
+  d.link(x, y++, '[ work ]', '/work/', Tone.Ink);
+  if (!WITHHOLD) d.link(x, y++, '[ resume.pdf ]', PERSON.resume, Tone.Ink);
   return y;
 }
 
@@ -416,12 +415,12 @@ export function composeCard(cols: number, minRows = 0, reserveRows = 0): Plane {
   if (!WITHHOLD) d.link(x0, y++, PERSON.email, `mailto:${PERSON.email}`, Tone.Ink);
   d.link(x0, y++, PERSON.github, PERSON.githubHref, Tone.Dim);
   d.link(x0, y++, PERSON.linkedin, PERSON.linkedinHref, Tone.Dim);
-  if (!WITHHOLD) {
-    y += 1;
-    d.link(x0, y, '[ resume.pdf ]', PERSON.resume, Tone.Accent);
-    y += 2;
-  }
+  // One row, so the card is no taller than it was: work first, because it is
+  // the one link here a withheld visitor still gets.
   y += 1;
+  d.link(x0, y, '[ work ]', '/work/', Tone.Accent);
+  if (!WITHHOLD) d.link(x0 + 10, y, '[ resume.pdf ]', PERSON.resume, Tone.Accent);
+  y += 3;
 
   y = d.block(x0, y, 'NOW', Tone.Display) + 2;
   for (const r of NOW) y = roleBlock(d, x0, y, r) + 1;

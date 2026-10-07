@@ -1,39 +1,4 @@
-@font-face {
-  font-family: 'Departure Mono';
-  src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-display: block;
-}
-
-:root {
-  /* Darkroom under a safelight: the surface stays near-neutral and the amber
-     does all of the mood work. */
-  --bg: oklch(0.148 0.006 45);
-  --display: oklch(0.97 0.022 62);
-  --ink: oklch(0.94 0.014 60);
-  --ink-dim: oklch(0.78 0.014 58);
-  --muted: oklch(0.62 0.03 50);
-  --glow: oklch(0.685 0.172 47.7);
-  --glow-hot: oklch(0.82 0.175 54);
-
-  /* Act two: ink, snow and plum. Nothing amber survives the scroll. */
-  /* The plum sits at hue ~357, a long way round from the safelight's 48. At
-     hue 12 it was only 35 degrees off the amber, which reads as two oranges
-     that don't match rather than as a change of palette. The acts are timed so
-     the two never share the screen at strength; the distance is what makes the
-     handover read as deliberate when they briefly do. */
-  --bloom: oklch(0.78 0.15 357);
-  --bloom-deep: oklch(0.57 0.205 8);
-  /* Wood recedes so the blossom carries the composition; bright bark turns the
-     branch into scratches competing with the flowers. Bone at low brightness,
-     not a hue of its own — act two is black, bone and plum, and nothing else. */
-  --bark: oklch(0.56 0.008 60);
-
-  --grid: 'Departure Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --doc: ui-serif, 'Iowan Old Style', Charter, Palatino, Georgia, serif;
-
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
-}
+@import './tokens.css';
 
 * {
   box-sizing: border-box;

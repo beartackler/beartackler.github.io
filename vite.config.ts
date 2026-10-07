@@ -50,6 +50,7 @@ function resumeDocument(): Plugin {
         <p class="meta bits">
           <span data-withhold><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></span>
           <span data-withhold><a href="tel:${esc(p.phoneHref)}">${esc(p.phone)}</a></span>
+          <span><a href="/work/">work</a></span>
           <span><a href="${esc(p.githubHref)}">${esc(p.github)}</a></span>
           <span><a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a></span>
           <span data-withhold><a href="${esc(p.resume)}">resume.pdf</a></span>
@@ -104,6 +105,7 @@ function resumeDocument(): Plugin {
       <p class="outro-rule" aria-hidden="true">...'''::::---===+++**##@@##**+++===---::::'''...</p>
       <ul class="outro-links">
         <li data-withhold><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></li>
+        <li><a href="/work/">work</a></li>
         <li><a href="${esc(p.githubHref)}">${esc(p.github)}</a></li>
         <li><a href="${esc(p.linkedinHref)}">${esc(p.linkedin)}</a></li>
       </ul>
@@ -162,5 +164,9 @@ const QUOTES = ['coda', 'drive', 'sisyphus', 'hole'];
 
 export default defineConfig({
   plugins: [resumeDocument()],
-  build: { target: 'es2022', assetsInlineLimit: 0 },
+  build: {
+    target: 'es2022',
+    assetsInlineLimit: 0,
+    rollupOptions: { input: { main: 'index.html', work: 'work/index.html' } },
+  },
 });
